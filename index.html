@@ -1,0 +1,227 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>盤面画像ユニット配置アプリ - boardMap版</title>
+  <style>
+    body { margin: 0; background: #f8f8f8; font-family: sans-serif; overflow: hidden; }
+    #container { position: relative; margin: 0 auto; display: inline-block; }
+    #board { position: relative; display: inline-block; pointer-events: auto; }
+    #boardImg { display: block; }
+    .unit { position: absolute; pointer-events: auto; }
+    .button { position: absolute; pointer-events: auto; transform: translate(-50%, -50%); }
+    
+    .highlighted {
+      outline: 3px solid orange;
+      outline-offset: -3px;
+      border-radius: 4px;
+    }
+
+    #unitPanel { position: absolute; left: 0; width: 100%; height: 440px; top: 0; z-index: 10; pointer-events: none; }
+    .selectableUnit { position: absolute; pointer-events: auto; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="board">
+      <img id="boardImg" src="Z_00.png" alt="盤面" />
+    </div>
+    <div id="unitPanel"></div>
+    <img class="button" id="btnLeft" src="LR_bottun_Leave.png" style="left:16px; top:306px;">
+    <img class="button" id="btnRight" src="LR_bottun_Leave.png" style="left:349px; top:306px;">
+    <img class="button" id="btnUndo" src="Un_bottun_Leave.png" style="left:91px; top:417px;">
+    <img class="button" id="btnClear" src="Clear_bottun_Leave.png" style="left:183px; top:417px;">
+    <img class="button" id="btnDo" src="Do_bottun_Leave.png" style="left:273px; top:417px;">
+  </div>
+
+  <script>
+    const board = document.getElementById("board");
+    const boardImg = document.getElementById("boardImg");
+    const panel = document.getElementById("unitPanel");
+    let currentSet = 'A';
+    let currentSelection = null;
+      document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+    let boardMap = [];
+    let history = [];
+    let historyIndex = -1;
+
+    const unitSets = {
+      A: Array.from({ length: 20 }, (_, i) => `A_${String(i+1).padStart(2, '0')}.png`),
+      B: Array.from({ length: 20 }, (_, i) => `B_${String(i+1).padStart(2, '0')}.png`),
+      C: Array.from({ length: 20 }, (_, i) => `C_${String(i+1).padStart(2, '0')}.png`)
+    };
+
+    const boardCenters = [
+      [33, 31],[81, 31],[129, 31],[179, 31],[228, 31],[278, 31],[340, 31],
+      [33, 78],[81, 78],[129, 78],[179, 78],[228, 78],[278, 78],[340, 78],
+      [33, 126],[81, 126],[129, 126],[179, 126],[228, 126],[278, 126],[340, 126]
+    ];
+
+    boardMap = boardCenters.map(([x, y]) => ({ x, y, units: [] }));
+
+    function getCell(x, y) {
+      return boardMap.find(cell => cell.x === x && cell.y === y);
+    }
+
+    function loadUnitPanel(set) {
+      panel.innerHTML = "";
+      
+    const excluded = new Set(["C_15.png", "C_16.png", "C_17.png", "C_18.png", "C_19.png", "C_20.png"]);
+    unitSets[set].forEach((src, i) => {
+      const filename = src.split('/').pop();
+      if (excluded.has(filename)) return;
+
+        const img = document.createElement("img");
+        img.src = src;
+        img.classList.add("selectableUnit");
+        img.onload = () => {
+          img.style.left = `${[60, 120, 180, 240, 300][i % 5] - img.naturalWidth / 2}px`;
+          img.style.top = `${[200, 258, 314, 369][Math.floor(i / 5)] - img.naturalHeight / 2}px`;
+        };
+        img.addEventListener("click", () => {
+          
+          currentSelection = src;
+          document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+          img.classList.add('highlighted');
+
+        });
+        panel.appendChild(img);
+      });
+    }
+
+    function saveHistory() {
+      history = history.slice(0, historyIndex + 1);
+      if (history.length >= 10) history.shift();
+      history.push(JSON.stringify(boardMap));
+      historyIndex = history.length - 1;
+    }
+
+    function restoreHistory(index) {
+      boardMap = JSON.parse(history[index]);
+      renderBoard();
+    }
+
+    function renderBoard() {
+      board.innerHTML = "";
+      board.appendChild(boardImg);
+      boardMap.forEach(cell => {
+        cell.units.forEach(unit => {
+          const img = document.createElement("img");
+          img.src = unit.src;
+          img.className = "unit";
+          img.onload = () => {
+            img.style.left = `${cell.x + unit.dx - img.naturalWidth / 2}px`;
+            img.style.top = `${cell.y + unit.dy - img.naturalHeight / 2}px`;
+          };
+          img.addEventListener("dblclick", () => {
+            cell.units = cell.units.filter(u => u.src !== unit.src);
+            currentSelection = null;
+            document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+            renderBoard();
+            saveHistory();
+          });
+          board.appendChild(img);
+        });
+      });
+    }
+
+    board.addEventListener("click", e => {
+      if (!currentSelection) return;
+      const rect = boardImg.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const offsetY = e.clientY - rect.top;
+
+      let nearest = null;
+      let minDist = Infinity;
+      boardCenters.forEach(([cx, cy]) => {
+        const dx = offsetX - cx;
+        const dy = offsetY - cy;
+        const dist = dx * dx + dy * dy;
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = [cx, cy];
+        }
+      });
+      if (!nearest) return;
+
+      const cell = getCell(nearest[0], nearest[1]);
+      const same = cell.units.filter(u => u.src === currentSelection);
+      const sameType = cell.units.filter(u => u.src.startsWith("A_"));
+      let changed = false;
+
+      if (currentSelection.startsWith("A_")) {
+        cell.units = cell.units.filter(u => u.src.startsWith("A_"));
+        if (same.length === 0 && sameType.length === 0) {
+          cell.units.push({ src: currentSelection, dx: 0, dy: 0 });
+          changed = true;
+        } else if (same.length === 1) {
+          cell.units = cell.units.filter(u => u.src !== currentSelection);
+          cell.units.push({ src: currentSelection, dx: -8, dy: 8 });
+          cell.units.push({ src: currentSelection, dx: 8, dy: -8 });
+          changed = true;
+        } else if (same.length === 2) {
+          cell.units = cell.units.filter(u => u.src !== currentSelection);
+          cell.units.push({ src: currentSelection, dx: -8, dy: 8 });
+          cell.units.push({ src: currentSelection, dx: 8, dy: 8 });
+          cell.units.push({ src: currentSelection, dx: 0, dy: -8 });
+          changed = true;
+        } else if (same.length === 0 && sameType.length > 0) {
+          cell.units = cell.units.filter(u => !u.src.startsWith("A_"));
+          cell.units.push({ src: currentSelection, dx: 0, dy: 0 });
+          changed = true;
+        }
+      } else {
+        cell.units = [{ src: currentSelection, dx: 0, dy: 0 }];
+        changed = true;
+      }
+
+      if (changed) {
+        renderBoard();
+        saveHistory();
+      }
+
+      currentSelection = null;
+      document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+    });
+
+    document.getElementById("btnLeft").addEventListener("click", () => {
+      currentSet = currentSet === 'A' ? 'C' : currentSet === 'B' ? 'A' : 'B';
+      loadUnitPanel(currentSet);
+      currentSelection = null;
+      document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+    });
+    document.getElementById("btnRight").addEventListener("click", () => {
+      currentSet = currentSet === 'A' ? 'B' : currentSet === 'B' ? 'C' : 'A';
+      loadUnitPanel(currentSet);
+      currentSelection = null;
+      document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+    });
+    document.getElementById("btnUndo").addEventListener("click", () => {
+      if (historyIndex > 0) {
+        historyIndex--;
+        restoreHistory(historyIndex);
+      }
+    });
+    document.getElementById("btnDo").addEventListener("click", () => {
+      if (historyIndex < history.length - 1) {
+        historyIndex++;
+        restoreHistory(historyIndex);
+      }
+    });
+    document.getElementById("btnClear").addEventListener("click", () => {
+      boardMap.forEach(cell => cell.units = []);
+      renderBoard();
+      saveHistory();
+    });
+
+    boardImg.addEventListener("load", () => {
+      board.style.width = `${boardImg.naturalWidth}px`;
+      board.style.height = `${boardImg.naturalHeight}px`;
+    });
+
+    loadUnitPanel(currentSet);
+  </script>
+</body>
+</html>
