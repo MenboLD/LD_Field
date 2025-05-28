@@ -3,11 +3,11 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>盤面画像ユニット配置アプリ - boardMap版</title>
   <style>
-    body { margin: 0; background: #f8f8f8; font-family: sans-serif; overflow: hidden; }
-    #container { position: relative; margin: 0 auto; display: inline-block; }
+    body { margin: 0; display: flex; justify-content: center; align-items: start; height: 100vh; overflow: hidden; background: #f8f8f8; font-family: sans-serif; overflow: hidden; }
+    #container { position: relative; margin: auto; margin: 0 auto; display: inline-block; }
     #board { position: relative; display: inline-block; pointer-events: auto; }
     #boardImg { display: block; }
     .unit { position: absolute; pointer-events: auto; }
