@@ -42,12 +42,42 @@
     const panel = document.getElementById("unitPanel");
     let currentSet = 'A';
     let currentSelection = null;
-      document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
     let boardMap = [];
     let history = [];
     let historyIndex = -1;
 
-    const unitSets = {
+    
+    const unlockConditions = [
+      {
+        id: "C_15",
+        triggerUnit: "A_14.png",
+        targetPositions: [ [6, 0], [6, 1], [6, 2] ],
+        requiredCountPerCell: 3,
+        cleared: false
+      }
+    ];
+
+    function checkUnlockOnPlacement() {
+      unlockConditions.forEach(cond => {
+        if (cond.cleared) return;
+        let count = 0;
+        cond.targetPositions.forEach(([col, row]) => {
+          const index = row * 7 + col;
+          const cell = boardMap[index];
+          if (!cell) return;
+          cell.units.forEach(u => {
+            if (u.src.endsWith(cond.triggerUnit)) count++;
+          });
+        });
+        if (count >= 9) {
+          cond.cleared = true;
+          triggerUnlock(cond.id, () => loadUnitPanel(currentSet));
+        }
+      });
+    }
+
+
+const unitSets = {
       A: Array.from({ length: 20 }, (_, i) => `A_${String(i+1).padStart(2, '0')}.png`),
       B: Array.from({ length: 20 }, (_, i) => `B_${String(i+1).padStart(2, '0')}.png`),
       C: Array.from({ length: 20 }, (_, i) => `C_${String(i+1).padStart(2, '0')}.png`)
@@ -71,7 +101,7 @@
     const excluded = new Set(["C_15.png", "C_16.png", "C_17.png", "C_18.png", "C_19.png", "C_20.png"]);
     unitSets[set].forEach((src, i) => {
       const filename = src.split('/').pop();
-      if (excluded.has(filename)) return;
+      if (excluded.has(filename) && !unlockConditions.some(c => c.id + ".png" === filename && c.cleared)) return;
 
         const img = document.createElement("img");
         img.src = src;
@@ -117,8 +147,7 @@
           };
           img.addEventListener("dblclick", () => {
             cell.units = cell.units.filter(u => u.src !== unit.src);
-            currentSelection = null;
-            document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+            
             renderBoard();
             saveHistory();
           });
@@ -178,25 +207,23 @@
       }
 
       if (changed) {
+        checkUnlockOnPlacement();
         renderBoard();
         saveHistory();
       }
 
-      currentSelection = null;
-      document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+      
     });
 
     document.getElementById("btnLeft").addEventListener("click", () => {
       currentSet = currentSet === 'A' ? 'C' : currentSet === 'B' ? 'A' : 'B';
       loadUnitPanel(currentSet);
-      currentSelection = null;
-      document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+      
     });
     document.getElementById("btnRight").addEventListener("click", () => {
       currentSet = currentSet === 'A' ? 'B' : currentSet === 'B' ? 'C' : 'A';
       loadUnitPanel(currentSet);
-      currentSelection = null;
-      document.querySelectorAll('.selectableUnit').forEach(img => img.classList.remove('highlighted'));
+      
     });
     document.getElementById("btnUndo").addEventListener("click", () => {
       if (historyIndex > 0) {
@@ -222,6 +249,93 @@
     });
 
     loadUnitPanel(currentSet);
-  </script>
+  
+
+    function triggerUnlock(id, callback) {
+      const overlay = document.getElementById("darkOverlay");
+      const challenger = document.getElementById("newChallenger");
+      const effectImage = document.getElementById("effectImage");
+      document.body.classList.add("interaction-locked");
+
+      // 初期化
+      overlay.style.display = "block";
+      challenger.style.display = "none";
+      effectImage.style.display = "none";
+      challenger.style.opacity = 1;
+      effectImage.style.opacity = 1;
+
+      // 0～2秒：フラッシュ
+      let flashCount = 0;
+      const flashInterval = setInterval(() => {
+        overlay.style.backgroundColor = flashCount % 2 === 0 ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.5)";
+        flashCount++;
+        if (flashCount >= 4) clearInterval(flashInterval);
+      }, 500);
+
+      // 6秒後：NewChallengerズームイン
+      setTimeout(() => {
+        
+        const boardImg = document.getElementById("boardImg");
+        const boardRect = boardImg.getBoundingClientRect();
+        const boardCenterY = boardRect.top + boardRect.height / 2 + window.scrollY;
+        challenger.style.top = boardCenterY + "px";
+
+        challenger.style.display = "block";
+        challenger.style.transform = "translate(-50%, -50%) scale(0)";
+        challenger.style.transition = "transform 3s ease-in-out, opacity 3s";
+        challenger.style.opacity = 0;
+        setTimeout(() => {
+          challenger.style.transform = "translate(-50%, -50%) scale(0.75)";
+          challenger.style.opacity = 1;
+        }, 100);
+      }, 6000);
+
+      // 9秒後：NewChallenger点滅
+      setTimeout(() => {
+        let blink = true;
+        const blinkInterval = setInterval(() => {
+          challenger.style.opacity = blink ? "0.2" : "1.0";
+          blink = !blink;
+        }, 300);
+        setTimeout(() => {
+          clearInterval(blinkInterval);
+          challenger.style.transition = "opacity 2s";
+          challenger.style.opacity = 0;
+        }, 3000);
+      }, 9000);
+
+      // 12秒後：Effect表示
+      setTimeout(() => {
+        effectImage.src = id + "_Efect.png";
+        effectImage.style.display = "block";
+        effectImage.style.opacity = 0;
+        effectImage.style.transition = "opacity 2s";
+        setTimeout(() => {
+          effectImage.style.opacity = 1;
+        }, 10);
+      }, 12000);
+
+      // 17秒後：Effectフェードアウト
+      setTimeout(() => {
+        effectImage.style.transition = "opacity 3s";
+        effectImage.style.opacity = 0;
+        setTimeout(() => {
+          effectImage.style.display = "none";
+          overlay.style.display = "none";
+          document.body.classList.remove("interaction-locked");
+          // DOMから演出画像を削除
+    document.getElementById("newChallenger")?.remove();
+    document.getElementById("effectImage")?.remove();
+    if (callback) callback();
+        }, 3000);
+      }, 17000);
+    }
+
+</script>
+
+  <div id="darkOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background-color:black;z-index:9999;display:none;"></div>
+  <img id="newChallenger" src="NewChallenger.png" style="position:fixed;top:calc(50% - 100px);left:50%;transform:translate(-50%,-50%) scale(0.75);z-index:10000;display:none;">
+  <img id="effectImage" style="position:fixed;top:0px;left:50%;transform:translateX(-50%) scale(0.75);z-index:10001;display:none;">
+
 </body>
 </html>
