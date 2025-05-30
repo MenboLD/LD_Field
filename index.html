@@ -50,6 +50,13 @@
     
     const unlockConditions = [
       {
+        id: "C_16",
+        triggerUnit: "B_03.png",
+        targetPositions: [ [0, 0], [1, 0], [2, 0] ],
+        requiredCountPerCell: 1,
+        cleared: false
+      },
+      {
         id: "C_15",
         triggerUnit: "A_14.png",
         targetPositions: [ [6, 0], [6, 1], [6, 2] ],
@@ -59,6 +66,32 @@
     ];
 
     function checkUnlockOnPlacement() {
+
+  // --- C_16 完全一致配置判定（復元） ---
+  const c16TargetMap = [
+    [0,0,"B_03.png"], [1,0,"B_01.png"], [2,0,"A_15.png"], [3,0,"A_05.png","A_05.png"], [4,0,"A_03.png"], [5,0,"A_11.png"],
+    [0,1,"B_03.png"], [1,1,"B_01.png"], [2,1,"C_04.png"], [3,1,"A_13.png"], [4,1,"B_14.png"], [5,1,"B_06.png"],
+    [0,2,"A_17.png"], [1,2,"A_17.png"], [2,2,"C_08.png"], [3,2,"A_11.png"], [4,2,"B_14.png"], [5,2,"C_05.png"]
+  ];
+  let c16Matched = true;
+  for (const [col, row, ...expected] of c16TargetMap) {
+    const index = row * 7 + col;
+    const cell = boardMap[index];
+    if (!cell) { c16Matched = false; break; }
+    const placed = cell.units.map(u => u.src.split('/').pop()).sort();
+    const needed = expected.sort();
+    if (JSON.stringify(placed) !== JSON.stringify(needed)) {
+      c16Matched = false; break;
+    }
+  }
+  if (c16Matched) {
+    const cond = unlockConditions.find(c => c.id === "C_16");
+    if (cond && !cond.cleared) {
+      cond.cleared = true;
+      triggerUnlock(cond.id, () => loadUnitPanel(currentSet));
+    }
+  }
+
       unlockConditions.forEach(cond => {
         if (cond.cleared) return;
         let count = 0;
@@ -188,8 +221,14 @@ const unitSets = {
           changed = true;
         } else if (same.length === 1) {
           cell.units = cell.units.filter(u => u.src !== currentSelection);
-          cell.units.push({ src: currentSelection, dx: -8, dy: 8 });
-          cell.units.push({ src: currentSelection, dx: 8, dy: -8 });
+          // 特定マス x=179, y=31 かつ A_05.png の2体目は左上・右下配置
+          if (currentSelection === "A_05.png" && cell.x === 179 && cell.y === 31) {
+            cell.units.push({ src: currentSelection, dx: -8, dy: -8 });
+            cell.units.push({ src: currentSelection, dx: 8, dy: 8 });
+          } else {
+            cell.units.push({ src: currentSelection, dx: -8, dy: 8 });
+            cell.units.push({ src: currentSelection, dx: 8, dy: -8 });
+          }
           changed = true;
         } else if (same.length === 2) {
           cell.units = cell.units.filter(u => u.src !== currentSelection);
@@ -320,7 +359,11 @@ function triggerUnlock(id, callback) {
 
   // 4.5秒：effectImage フェードイン
   setTimeout(() => {
-    effectImage.src = id + "_Efect.png";
+    effectImage.src = (id === "C_16" ? "C_16_Efect.png" : id + "_Efect.png");
+    effectImage.style.top = "0px";
+    effectImage.style.left = "50%";
+    effectImage.style.transform = "translateX(-50%) scale(0.75)";
+    effectImage.style.transformOrigin = "top center";
     effectImage.style.display = "block";
     let eOpacity = 0.0;
     const fadeIn = setInterval(() => {
@@ -346,8 +389,8 @@ function triggerUnlock(id, callback) {
   // 8.5秒：全要素を非表示・DOM削除
   setTimeout(() => {
     overlay.style.display = "none";
-    challenger.remove();
-    effectImage.remove();
+    challenger.style.display = "none";
+    effectImage.style.display = "none";
     document.body.classList.remove("interaction-locked");
     if (callback) callback();
   }, 8500);
