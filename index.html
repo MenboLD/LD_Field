@@ -1,12 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>盤面画像ユニット配置アプリ - boardMap版</title>
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+  <title>
+   盤面画像ユニット配置アプリ - boardMap版
+  </title>
   <style>
-    body { margin: 0; display: flex; justify-content: center; align-items: start; height: 100vh; overflow: hidden; background: #f8f8f8; font-family: sans-serif; overflow: hidden; }
+   body { margin: 0; display: flex; justify-content: center; align-items: start; height: 100vh; overflow: hidden; background: #f8f8f8; font-family: sans-serif; overflow: hidden; }
     #container { position: relative; margin: auto; margin: 0 auto; display: inline-block; }
     #board { position: relative; display: inline-block; pointer-events: auto; }
     #boardImg { display: block; }
@@ -22,22 +23,22 @@
     #unitPanel { position: absolute; left: 0; width: 100%; height: 440px; top: 0; z-index: 10; pointer-events: none; }
     .selectableUnit { position: absolute; pointer-events: auto; }
   </style>
-</head>
-<body>
+ </head>
+ <body>
   <div id="container">
-    <div id="board">
-      <img id="boardImg" src="Z_00.png" alt="盤面" />
-    </div>
-    <div id="unitPanel"></div>
-    <img class="button" id="btnLeft" src="LR_bottun_Leave.png" style="left:16px; top:306px;">
-    <img class="button" id="btnRight" src="LR_bottun_Leave.png" style="left:349px; top:306px;">
-    <img class="button" id="btnUndo" src="Un_bottun_Leave.png" style="left:91px; top:417px;">
-    <img class="button" id="btnClear" src="Clear_bottun_Leave.png" style="left:183px; top:417px;">
-    <img class="button" id="btnDo" src="Do_bottun_Leave.png" style="left:273px; top:417px;">
+   <div id="board">
+    <img alt="盤面" id="boardImg" src="Z_00.png"/>
+   </div>
+   <div id="unitPanel">
+   </div>
+   <img class="button" id="btnLeft" src="LR_bottun_Leave.png" style="left:16px; top:306px;"/>
+   <img class="button" id="btnRight" src="LR_bottun_Leave.png" style="left:349px; top:306px;"/>
+   <img class="button" id="btnUndo" src="Un_bottun_Leave.png" style="left:91px; top:417px;"/>
+   <img class="button" id="btnClear" src="Clear_bottun_Leave.png" style="left:183px; top:417px;"/>
+   <img class="button" id="btnDo" src="Do_bottun_Leave.png" style="left:273px; top:417px;"/>
   </div>
-
   <script>
-    const board = document.getElementById("board");
+   const board = document.getElementById("board");
     const boardImg = document.getElementById("boardImg");
     const panel = document.getElementById("unitPanel");
     let currentSet = 'A';
@@ -251,91 +252,110 @@ const unitSets = {
     loadUnitPanel(currentSet);
   
 
-    function triggerUnlock(id, callback) {
-      const overlay = document.getElementById("darkOverlay");
-      const challenger = document.getElementById("newChallenger");
-      const effectImage = document.getElementById("effectImage");
-      document.body.classList.add("interaction-locked");
+    
+function triggerUnlock(id, callback) {
+  const overlay = document.getElementById("darkOverlay");
+  const challenger = document.getElementById("HereComes");
+  const effectImage = document.getElementById("effectImage");
 
-      // 初期化
-      overlay.style.display = "block";
-      challenger.style.display = "none";
-      effectImage.style.display = "none";
-      challenger.style.opacity = 1;
-      effectImage.style.opacity = 1;
+  document.body.classList.add("interaction-locked");
 
-      // 0～2秒：フラッシュ
-      let flashCount = 0;
-      const flashInterval = setInterval(() => {
-        overlay.style.backgroundColor = flashCount % 2 === 0 ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.5)";
-        flashCount++;
-        if (flashCount >= 4) clearInterval(flashInterval);
-      }, 500);
+  // 初期状態
+  overlay.style.display = "block";
+  overlay.style.opacity = "0";
+  overlay.style.backgroundColor = "black";
 
-      // 6秒後：NewChallengerズームイン
-      setTimeout(() => {
-        
-        const boardImg = document.getElementById("boardImg");
-        const boardRect = boardImg.getBoundingClientRect();
-        const boardCenterY = boardRect.top + boardRect.height / 2 + window.scrollY;
-        challenger.style.top = boardCenterY + "px";
+  challenger.style.display = "none";
+  challenger.style.opacity = "0";
+  challenger.style.transform = "translate(-50%, -50%) scale(0)";
+  effectImage.style.display = "none";
+  effectImage.style.opacity = "0";
 
-        challenger.style.display = "block";
-        challenger.style.transform = "translate(-50%, -50%) scale(0)";
-        challenger.style.transition = "transform 3s ease-in-out, opacity 3s";
-        challenger.style.opacity = 0;
-        setTimeout(() => {
-          challenger.style.transform = "translate(-50%, -50%) scale(0.75)";
-          challenger.style.opacity = 1;
-        }, 100);
-      }, 6000);
+  // 0.0〜1.0秒：暗転 (opacity: 0 → 0.5)
+  let oOpacity = 0.0;
+  const darkenInterval = setInterval(() => {
+    oOpacity += 0.05;
+    overlay.style.opacity = oOpacity.toString();
+    if (oOpacity >= 0.5) clearInterval(darkenInterval);
+  }, 100);
 
-      // 9秒後：NewChallenger点滅
-      setTimeout(() => {
-        let blink = true;
-        const blinkInterval = setInterval(() => {
-          challenger.style.opacity = blink ? "0.2" : "1.0";
-          blink = !blink;
-        }, 300);
-        setTimeout(() => {
-          clearInterval(blinkInterval);
-          challenger.style.transition = "opacity 2s";
-          challenger.style.opacity = 0;
-        }, 3000);
-      }, 9000);
-
-      // 12秒後：Effect表示
-      setTimeout(() => {
-        effectImage.src = id + "_Efect.png";
-        effectImage.style.display = "block";
-        effectImage.style.opacity = 0;
-        effectImage.style.transition = "opacity 2s";
-        setTimeout(() => {
-          effectImage.style.opacity = 1;
-        }, 10);
-      }, 12000);
-
-      // 17秒後：Effectフェードアウト
-      setTimeout(() => {
-        effectImage.style.transition = "opacity 3s";
-        effectImage.style.opacity = 0;
-        setTimeout(() => {
-          effectImage.style.display = "none";
-          overlay.style.display = "none";
-          document.body.classList.remove("interaction-locked");
-          // DOMから演出画像を削除
-    document.getElementById("newChallenger")?.remove();
-    document.getElementById("effectImage")?.remove();
-    if (callback) callback();
-        }, 3000);
-      }, 17000);
+  // 0.0〜2.0秒：フラッシュ（200ms × 10回）
+  let flashCount = 0;
+  const flashInterval = setInterval(() => {
+    overlay.style.backgroundColor = (flashCount % 2 === 0) ? "white" : "black";
+    flashCount++;
+    if (flashCount >= 10) {
+      clearInterval(flashInterval);
+      overlay.style.backgroundColor = "black";  // 明転終了後に真っ黒にならないよう残す
+      overlay.style.opacity = "0.5";
     }
+  }, 200);
 
-</script>
+  // 2.0秒：HereComes表示・拡大・フェードイン
+  setTimeout(() => {
+    challenger.style.display = "block";
+    let scale = 0.0;
+    let cOpacity = 0.0;
+    const appearInterval = setInterval(() => {
+      scale += 0.05;
+      cOpacity += 0.05;
+      challenger.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      challenger.style.opacity = cOpacity.toString();
+      if (scale >= 0.75) clearInterval(appearInterval);
+    }, 100);
+  }, 2000);
 
-  <div id="darkOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background-color:black;z-index:9999;display:none;"></div>
-  <img id="newChallenger" src="NewChallenger.png" style="position:fixed;top:calc(50% - 100px);left:50%;transform:translate(-50%,-50%) scale(0.75);z-index:10000;display:none;">
-  <img id="effectImage" style="position:fixed;top:0px;left:50%;transform:translateX(-50%) scale(0.75);z-index:10001;display:none;">
+  // 4.0秒：HereComes フェードアウト
+  setTimeout(() => {
+    let cOpacity = 1.0;
+    const fadeOut = setInterval(() => {
+      cOpacity -= 0.1;
+      challenger.style.opacity = cOpacity.toString();
+      if (cOpacity <= 0) {
+        clearInterval(fadeOut);
+        challenger.style.display = "none";
+      }
+    }, 100);
+  }, 4000);
 
-</body>
+  // 4.5秒：effectImage フェードイン
+  setTimeout(() => {
+    effectImage.src = id + "_Efect.png";
+    effectImage.style.display = "block";
+    let eOpacity = 0.0;
+    const fadeIn = setInterval(() => {
+      eOpacity += 0.1;
+      effectImage.style.opacity = eOpacity.toString();
+      if (eOpacity >= 1.0) clearInterval(fadeIn);
+    }, 100);
+  }, 4500);
+
+  // 7.0秒：effectImage フェードアウト
+  setTimeout(() => {
+    let eOpacity = 1.0;
+    const fadeOut = setInterval(() => {
+      eOpacity -= 0.1;
+      effectImage.style.opacity = eOpacity.toString();
+      if (eOpacity <= 0.0) {
+        clearInterval(fadeOut);
+        effectImage.style.display = "none";
+      }
+    }, 100);
+  }, 7000);
+
+  // 8.5秒：全要素を非表示・DOM削除
+  setTimeout(() => {
+    overlay.style.display = "none";
+    challenger.remove();
+    effectImage.remove();
+    document.body.classList.remove("interaction-locked");
+    if (callback) callback();
+  }, 8500);
+}
+  </script>
+  <div id="darkOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background-color:black;z-index:9999;display:none;">
+  </div>
+  <img id="HereComes" src="HereComes.gif" style="position:fixed;top:calc(50% - 100px);left:50%;transform:translate(-50%,-50%) scale(0.75);z-index:10000;display:none;"/>
+  <img id="effectImage" style="position:fixed;top:0px;left:50%;transform:translateX(-50%) scale(0.75);z-index:10001;display:none;"/>
+ </body>
 </html>
