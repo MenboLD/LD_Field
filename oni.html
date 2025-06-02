@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>おにぎりノベル</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100vh;
+    }
+
+    .container {
+      position: relative;
+      width: 414px;
+      height: 667px;
+      background: url('WEB.png') no-repeat top center;
+      background-size: contain;
+    }
+
+    .name-box {
+      position: absolute;
+      left: calc(35px);  /* 左に100pxずらし → -40px */
+      top: calc(432px - 60px);   /* 上に50px上げ → 382px */
+      width: 165px;
+      height: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      color: white;
+      font-family: 'Meiryo', sans-serif;
+      text-align: center;
+      line-height: 20px;
+    }
+
+    .text-box {
+      position: absolute;
+      left: calc(48px - 10px);  /* 左に100pxずらし → -52px */
+      top: calc(463px - 70px);   /* 上に50px上げ → 413px */
+      width: 320px;
+      height: 36px;
+      padding: 2px 4px;
+      color: white;
+      font-size: 14px;
+      font-family: 'Meiryo', sans-serif;
+      line-height: 1.4;
+      overflow: hidden;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="name-box">おにぎり</div>
+    <div class="text-box" id="textBox"></div>
+  </div>
+
+  <script>
+    const text = "みんなが崇める伝説のおにぎりだぞ！";
+    const textBox = document.getElementById("textBox");
+    let index = 0;
+
+    function showText() {
+      if (index < text.length) {
+        textBox.textContent += text[index];
+        index++;
+        setTimeout(showText, 70);
+      }
+    }
+
+    window.onload = showText;
+  </script>
+</body>
+</html>
