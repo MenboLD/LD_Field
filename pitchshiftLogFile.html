@@ -1,208 +1,427 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LD Daily Shop Recorder</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>LD Daily Shop — モック（編集可）</title>
 <style>
-body {
-  background: #121212;
-  color: #fff;
-  font-family: sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  height: 100vh;
-  margin: 0;
-}
+  :root{
+    --bg:#0f1113;
+    --panel:#131417;
+    --muted:#666;
+    --accent:#33aaff;
+  }
+  html,body{height:100%;margin:0;}
+  body{
+    font-family: "Hiragino Kaku Gothic ProN", "Segoe UI", Roboto, sans-serif;
+    background:var(--bg);
+    color:#fff;
+    display:flex;
+    justify-content:center;
+    padding:18px;
+  }
 
-.container {
-  width: 95%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
+  .viewport{
+    width: 95%;
+    max-width: 420px; /* iPhone11 幅に合わせて余裕を持たせる */
+  }
 
-/* 上側：ショップ枠 */
-.shop-area {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
+  /* SEND */
+  .send-wrap{margin-bottom:10px;}
+  .send-btn{
+    width:100%;
+    background: linear-gradient(180deg,#ffce00,#d4a000);
+    border-radius:10px;
+    padding:12px;
+    font-weight:700;
+    color:#111;
+    border:0;
+    box-shadow:0 4px #b38a00;
+    cursor:pointer;
+    transition:transform .08s, box-shadow .08s;
+  }
+  .send-btn:active{transform:translateY(3px); box-shadow:0 2px #b38a00; }
 
-.shop-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
+  /* 上段：A-F ブロック群 */
+  .blocks {
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .block {
+    background:var(--panel);
+    padding:8px;
+    border-radius:10px;
+    position:relative;
+    display:grid;
+    grid-template-columns: repeat(3, 40px);
+    grid-template-rows: repeat(2, 40px);
+    gap:6px;
+    justify-content:center;
+  }
+  .block-label {
+    position:absolute;
+    top:6px;
+    left:8px;
+    font-size:12px;
+    color:var(--muted);
+  }
 
-.shop-block {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 3px;
-}
+  /* 左上がUNDO（画像） */
+  .cell {
+    width:40px;
+    height:40px;
+    border-radius:6px;
+    background:#222;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    overflow:hidden;
+  }
+  .cell img{max-width:100%; max-height:100%; display:block;}
 
-.cell {
-  width: 40px;
-  height: 40px;
-  background: #333;
-  border-radius: 6px;
-}
+  .cell.editing{
+    outline:3px solid var(--accent);
+    background:#0b2233;
+  }
 
-.undo {
-  background: #ff4444;
-  color: white;
-  text-align: center;
-  line-height: 40px;
-  font-weight: bold;
-}
+  /* UNDOセルは画像で表示。クリックでundo */
+  .undo-cell{
+    padding:3px;
+    background:transparent;
+    cursor:pointer;
+  }
+  .undo-cell img{width:100%; height:100%; object-fit:contain; filter:none;}
 
-/* 下側：入力ブロック */
-.input-area {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
+  /* 下段：商品群（ゴールド/ダイヤ）*/
+  .products {
+    display:grid;
+    gap:10px;
+    margin-bottom:10px;
+  }
 
-.price-block {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-  padding: 4px 0; /* 上下余白少なめ */
-  border-radius: 8px;
-}
+  .price-frame{
+    border-radius:10px;
+    padding:6px;
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap:8px;
+    align-items:center;
+    background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+  }
+  .gold-frame{ border:2px solid gold; }
+  .dia-frame{ border:2px solid deepskyblue; }
 
-.gold-block {
-  border: 2px solid gold;
-  background: rgba(255,215,0,0.08);
-  padding-left: 2px; /* 左右余白調整 */
-  padding-right: 2px;
-}
+  .prod-item{
+    width:56px;
+    height:56px;
+    border-radius:8px;
+    background:#1b1d20;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition: transform .06s;
+  }
+  .prod-item:active{ transform: translateY(2px); }
+  .prod-item img{ width: 70%; height:auto; display:block; }
 
-.dia-block {
-  border: 2px solid deepskyblue;
-  background: rgba(0,191,255,0.08);
-  padding-left: 2px;
-  padding-right: 2px;
-}
+  /* 空セル（非表示の余白セル） */
+  .prod-empty{ background:transparent; cursor:default; }
 
-.price-block img {
-  width: 56px; /* 1.4倍 */
-  height: 56px;
-  border-radius: 6px;
-}
+  /* 凡例 */
+  .legend{
+    margin-top:8px;
+    display:flex;
+    gap:18px;
+    justify-content:center;
+    align-items:center;
+    color:#cfcfcf;
+    font-size:14px;
+  }
+  .legend .box{
+    width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    background:transparent; border:2px solid;
+  }
+  .box.gold{ border-color:gold; } .box.dia{ border-color:deepskyblue; }
+  .box img{ width:72%; height:auto; display:block; }
 
-.type-icon {
-  opacity: 0.6;
-  filter: sepia(0.6) grayscale(0.3); /* 商品誤認回避 */
-  pointer-events: none;
-}
+  /* small help text inside page */
+  .hint{ font-size:12px; color:#aaa; text-align:center; margin-top:8px; }
+
+  /* responsive tweak for very narrow */
+  @media (max-width:360px){
+    .block{ grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(2,36px); gap:6px; }
+    .cell{ width:36px; height:36px; }
+    .prod-item{ width:50px; height:50px;}
+  }
 </style>
 </head>
-
 <body>
-  <div class="container">
+  <div class="viewport">
+    <!-- SEND -->
+    <div class="send-wrap">
+      <button class="send-btn" id="sendBtn">SEND</button>
+    </div>
 
-    <!-- 上部：ショップ枠 -->
-    <div class="shop-area">
-      <!-- 上段 A〜C -->
-      <div class="shop-row">
-        <div class="shop-block">
-          <div class="cell undo">U</div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
+    <!-- 上段：A-F（3x2ブロック × 2行） -->
+    <div class="blocks" id="blocksContainer">
+      <!-- A -->
+      <div class="block" data-block="A">
+        <div class="block-label">A</div>
+        <!-- left-top is UNDO -->
+        <div class="cell undo-cell" data-pos="1" data-block="A" title="UNDO" onclick="undoBlock('A')">
+          <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="undo">
         </div>
-        <div class="shop-block">
-          <div class="cell undo">U</div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-        </div>
-        <div class="shop-block">
-          <div class="cell undo">U</div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-        </div>
+        <div class="cell" data-pos="2" data-block="A" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="3" data-block="A" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="4" data-block="A" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="5" data-block="A" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="6" data-block="A" onclick="focusCell(event)"> </div>
       </div>
 
-      <!-- 下段 D〜F -->
-      <div class="shop-row">
-        <div class="shop-block">
-          <div class="cell undo">U</div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
+      <!-- B -->
+      <div class="block" data-block="B">
+        <div class="block-label">B</div>
+        <div class="cell undo-cell" data-pos="1" data-block="B" title="UNDO" onclick="undoBlock('B')">
+          <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="undo">
         </div>
-        <div class="shop-block">
-          <div class="cell undo">U</div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
+        <div class="cell" data-pos="2" data-block="B" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="3" data-block="B" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="4" data-block="B" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="5" data-block="B" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="6" data-block="B" onclick="focusCell(event)"> </div>
+      </div>
+
+      <!-- C -->
+      <div class="block" data-block="C">
+        <div class="block-label">C</div>
+        <div class="cell undo-cell" data-pos="1" data-block="C" title="UNDO" onclick="undoBlock('C')">
+          <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="undo">
         </div>
-        <div class="shop-block">
-          <div class="cell undo">U</div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
-          <div class="cell"></div>
+        <div class="cell" data-pos="2" data-block="C" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="3" data-block="C" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="4" data-block="C" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="5" data-block="C" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="6" data-block="C" onclick="focusCell(event)"> </div>
+      </div>
+
+      <!-- D -->
+      <div class="block" data-block="D">
+        <div class="block-label">D</div>
+        <div class="cell undo-cell" data-pos="1" data-block="D" title="UNDO" onclick="undoBlock('D')">
+          <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="undo">
         </div>
+        <div class="cell" data-pos="2" data-block="D" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="3" data-block="D" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="4" data-block="D" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="5" data-block="D" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="6" data-block="D" onclick="focusCell(event)"> </div>
+      </div>
+
+      <!-- E -->
+      <div class="block" data-block="E">
+        <div class="block-label">E</div>
+        <div class="cell undo-cell" data-pos="1" data-block="E" title="UNDO" onclick="undoBlock('E')">
+          <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="undo">
+        </div>
+        <div class="cell" data-pos="2" data-block="E" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="3" data-block="E" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="4" data-block="E" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="5" data-block="E" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="6" data-block="E" onclick="focusCell(event)"> </div>
+      </div>
+
+      <!-- F -->
+      <div class="block" data-block="F">
+        <div class="block-label">F</div>
+        <div class="cell undo-cell" data-pos="1" data-block="F" title="UNDO" onclick="undoBlock('F')">
+          <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="undo">
+        </div>
+        <div class="cell" data-pos="2" data-block="F" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="3" data-block="F" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="4" data-block="F" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="5" data-block="F" onclick="focusCell(event)"> </div>
+        <div class="cell" data-pos="6" data-block="F" onclick="focusCell(event)"> </div>
       </div>
     </div>
 
-    <!-- 下部：入力ブロック -->
-    <div class="input-area">
+    <!-- 下段：商品群 -->
+    <div class="products">
 
-      <!-- ゴールド組 -->
-      <div class="price-block gold-block">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_00_type_gold.png?raw=true" class="type-icon" alt="gold">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_02_free.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_03_artifacts.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_03_scroll_30.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_04_scroll_100.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_05_scroll_300.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_01_unit.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_06_Mythstone.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_07_Immotaltone.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_08_chur.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_09_pet_draw.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_10_pet_upgrade.png?raw=true">
+      <!-- ゴールド：1行6個 -->
+      <div class="price-frame gold-frame" id="goldFrame">
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png"></div>
       </div>
 
-      <!-- ダイヤ組 -->
-      <div class="price-block dia-block">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_00_type_dia.png?raw=true" class="type-icon" alt="dia">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_02_free.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_03_artifacts.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_03_scroll_30.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_04_scroll_100.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_05_scroll_300.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_01_unit.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_06_Mythstone.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_07_Immotaltone.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_08_chur.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_09_pet_draw.png?raw=true">
-        <img src="https://github.com/MenboLD/LD_Field/blob/main/icon_10_pet_upgrade.png?raw=true">
-      </div>
+      <!-- ダイヤ：2段（上6, 下4 + 2 空） -->
+      <div class="price-frame dia-frame" id="diaFrame">
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png"></div>
 
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_chur.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_chur.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_draw.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_draw.png"></div>
+        <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_10_pet_upgrade.png" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_10_pet_upgrade.png"></div>
+
+        <div class="prod-empty"></div>
+        <div class="prod-empty"></div>
+      </div>
     </div>
+
+    <!-- 凡例 -->
+    <div class="legend">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="box gold"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_00_type_gold.png" alt="gold"></div>
+        <div>… Gold</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="box dia"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_00_type_dia.png" alt="dia"></div>
+        <div>… Dia</div>
+      </div>
+    </div>
+
+    <div class="hint">下段のアイコンをタップして、上段の編集中マスに配置します。UNDOは各ブロック左上（画像）です。</div>
   </div>
+
+<script>
+/* ---- 状態管理 ----
+- ブロックごとに slots[block] = [null x6]  index 1..6 (pos1 is UNDO cell)
+- nextIndex[block] = next slot index to fill (2..6 mapped to user-visible slots)
+- history[block] = stack of filled indexes (for undo)
+- currentBlock = active block ID (A-F)
+- editing highlight applied to the slot element indicated by nextIndex (if empty) or last filled+1
+---- */
+
+const blocks = ['A','B','C','D','E','F'];
+const slots = {};
+const history = {};
+const nextIndex = {};
+let currentBlock = 'A'; // default active
+
+// initialize
+blocks.forEach(b => {
+  slots[b] = [null, null, null, null, null, null, null]; // index 1..6 (we'll ignore index 0)
+  history[b] = [];
+  nextIndex[b] = 2; // next fillable (pos2..pos6). pos1 is UNDO.
+});
+
+// utility to find cell element by block and pos
+function cellEl(block, pos){
+  return document.querySelector(`.cell[data-block="${block}"][data-pos="${pos}"]`);
+}
+
+// set editing highlight for current block's nextIndex
+function refreshEditingHighlight(block){
+  // remove editing from all cells
+  document.querySelectorAll('.cell').forEach(c => c.classList.remove('editing'));
+  // only highlight if within 2..6
+  const idx = nextIndex[block];
+  if(idx >= 2 && idx <=6){
+    const el = cellEl(block, idx);
+    if(el) el.classList.add('editing');
+  }
+  currentBlock = block;
+}
+
+// when user clicks a cell in a block, set that block active and set nextIndex accordingly if clicking empty
+function focusCell(e){
+  const el = e.currentTarget;
+  const block = el.getAttribute('data-block');
+  const pos = parseInt(el.getAttribute('data-pos'),10);
+  // set currentBlock
+  currentBlock = block;
+  // if clicked pos is between 2..6 and is empty, set nextIndex to that pos
+  if(pos >= 2 && pos <=6){
+    const filled = slots[block][pos];
+    if(!filled){
+      nextIndex[block] = pos;
+    } else {
+      // if already filled, set nextIndex to next empty after pos (or keep as is)
+      let ni = pos+1;
+      while(ni<=6 && slots[block][ni]) ni++;
+      if(ni<=6) nextIndex[block]=ni;
+      else {
+        // all filled; keep nextIndex at 6+ to indicate full
+        nextIndex[block]=7;
+      }
+    }
+  }
+  refreshEditingHighlight(block);
+}
+
+// place product into currentBlock at nextIndex (if available)
+function placeProduct(evt){
+  const item = evt.currentTarget;
+  const src = item.getAttribute('data-src');
+  const block = currentBlock;
+  const idx = nextIndex[block]; // 2..6
+  if(!block || idx < 2 || idx > 6){
+    // no space — optionally flash or beep
+    // quick visual feedback: shake active block
+    const bEl = document.querySelector(`.block[data-block="${block}"]`);
+    if(bEl){ bEl.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:180}) }
+    return;
+  }
+  // set slot
+  slots[block][idx] = src;
+  history[block].push(idx);
+  // render image into cell
+  const target = cellEl(block, idx);
+  if(target){
+    target.innerHTML = `<img src="${src}" alt="">`;
+  }
+  // advance nextIndex to next empty slot
+  let ni = idx + 1;
+  while(ni <= 6 && slots[block][ni]) ni++;
+  nextIndex[block] = (ni <= 6) ? ni : 7; // 7 means full
+  refreshEditingHighlight(block);
+}
+
+// undo last in block (left-top UNDO)
+function undoBlock(block){
+  const lastIdx = history[block].pop();
+  if(!lastIdx) return;
+  // clear slot
+  slots[block][lastIdx] = null;
+  const target = cellEl(block, lastIdx);
+  if(target) target.innerHTML = '';
+  // set nextIndex to that slot (so it's editing)
+  nextIndex[block] = lastIdx;
+  refreshEditingHighlight(block);
+}
+
+// initialize highlight on load
+document.addEventListener('DOMContentLoaded', ()=> {
+  refreshEditingHighlight(currentBlock);
+  // allow clicking block container to set active block: clicking its label sets active
+  document.querySelectorAll('.block').forEach(bEl=>{
+    bEl.addEventListener('click', (ev)=>{
+      // but avoid clicking inside when clicking a prod cell or undo: we want only clicks on empty area to switch
+      // we use the block's data-block attribute to set active
+      const blk = bEl.getAttribute('data-block');
+      currentBlock = blk;
+      refreshEditingHighlight(blk);
+    });
+  });
+  // small: ensure send button visual already present
+  document.getElementById('sendBtn').addEventListener('click', ()=>{
+    // currently no send action; just flash
+    const btn = document.getElementById('sendBtn');
+    btn.animate([{transform:'scale(1)'},{transform:'scale(0.98)'},{transform:'scale(1)'}],{duration:180});
+  });
+});
+</script>
 </body>
 </html>
