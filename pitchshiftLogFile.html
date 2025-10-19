@@ -160,6 +160,11 @@ body{
 <body>
 <div class="viewport">
   <div class="topbar">
+<div style="margin:10px 0; text-align:center;">
+  <label for="username" style="font-weight:bold;">ユーザー名：</label>
+  <input id="username" type="text" placeholder="（任意）名前を入力" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc;">
+</div>
+
     <button id="sendBtn" class="btn">SEND</button>
     <button id="resetBtn" class="btn secondary">All Reset</button>
   </div>
@@ -327,5 +332,63 @@ document.addEventListener('DOMContentLoaded',()=>{
   refreshEditingHighlight('A');
 });
 </script>
+
+<!-- Supabase連携スクリプト -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://cxgbloauhimuhdjlvwvh.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 「空欄 or スペースのみ」を判定する補助関数
+function isBlank(str){
+  return (!str || /^\s*$/.test(str));
+}
+
+async function sendDataToSupabase(){
+  const nameInput = document.getElementById('username');
+  let username = nameInput ? nameInput.value.trim() : '';
+  if(isBlank(username)) username = "NoneName";
+
+  // 各ブロックの内容を抽出し、nullは"NoneItem"に置き換え
+  function normalizeBlock(blockArr){
+    const result = {};
+    for(let i=1;i<=6;i++){
+      const slot = blockArr[i];
+      if(slot && slot.src) result[i] = slot.src;
+      else result[i] = "NoneItem";
+    }
+    return result;
+  }
+
+  const payload = {
+    username,
+    block_a: normalizeBlock(slots['A']),
+    block_b: normalizeBlock(slots['B']),
+    block_c: normalizeBlock(slots['C']),
+    block_d: normalizeBlock(slots['D']),
+    block_e: normalizeBlock(slots['E']),
+    block_f: normalizeBlock(slots['F']),
+  };
+
+  // Supabaseへ送信
+  const { data, error } = await supabase.from('logs').insert([payload]);
+  const btn=document.getElementById('sendBtn');
+  btn.animate([{transform:'scale(1)'},{transform:'scale(0.98)'},{transform:'scale(1)'}],{duration:180});
+
+  if(error){
+    console.error(error);
+    alert("送信エラー: " + error.message);
+  }else{
+    alert("送信完了しました！");
+  }
+}
+
+document.getElementById('sendBtn').addEventListener('click', async ()=>{
+  await sendDataToSupabase();
+});
+</script>
+
+
 </body>
 </html>
