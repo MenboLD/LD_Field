@@ -1,206 +1,225 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>集計結果 - Lucky Defense Logs</title>
+<title>Lucky Defense - Aggregated Data</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{
-  --bg:#0f1113;
-  --panel:#131417;
-  --muted:#7a7f86;
-  --accent:#ffce00;
-  --max-content-w:450px;
-  --icon-size:28px;
+:root {
+  --bg: #0f1113;
+  --panel: #131417;
+  --accent: #ffce00;
+  --icon-size: 28px;
 }
-html,body{height:100%;margin:0;}
-body{
-  font-family:"Hiragino Kaku Gothic ProN","Segoe UI",Roboto,sans-serif;
-  background:var(--bg);
-  color:#fff;
-  display:flex;
-  justify-content:center;
-  padding:18px 0;
+body {
+  font-family: "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  padding: 18px 0;
 }
-.viewport{
-  width:min(92vw,var(--max-content-w));
-  margin:0 auto;
-  box-sizing:border-box;
-  padding:0 4vw;
+.viewport {
+  width: min(92vw, 450px);
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 0 4vw;
 }
-.topbar { display:flex; gap:8px; margin-bottom:10px; }
-.btn { flex:1; background:linear-gradient(180deg,#ffce00,#d4a000); border-radius:10px; padding:10px; font-weight:700; color:#111; border:0; box-shadow:0 4px #b38a00; cursor:pointer; transition:transform .08s,box-shadow .08s; }
-.btn:active { transform:translateY(3px); box-shadow:0 2px #b38a00; }
-input { flex:2; border-radius:10px; border:1px solid #444; background:#1a1c1f; color:#fff; padding:8px; font-size:14px; }
-
+input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #444;
+  background: #1a1c1f;
+  color: #fff;
+  padding: 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+button {
+  width: 100%;
+  background: linear-gradient(180deg, #ffce00, #d4a000);
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 700;
+  color: #111;
+  border: 0;
+  box-shadow: 0 4px #b38a00;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+button:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px #b38a00;
+}
 .panel {
-  background:var(--panel);
-  padding:10px;
-  border-radius:10px;
-  box-sizing:border-box;
+  background: var(--panel);
+  padding: 10px;
+  border-radius: 10px;
 }
 table {
-  width:100%;
-  border-collapse:collapse;
-  margin-top:8px;
-  font-size:14px;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 14px;
 }
 th, td {
-  text-align:center;
-  padding:8px;
-  border-bottom:1px solid #333;
+  text-align: center;
+  padding: 8px;
+  border-bottom: 1px solid #333;
 }
-th { color:var(--accent); background:#151617; }
-td img { width:var(--icon-size); height:var(--icon-size); object-fit:contain; display:inline-block; vertical-align:middle; }
-td.item-cell { text-align:left; padding-left:12px; }
-tfoot td { font-weight:bold; border-top:1px solid #555; }
+th {
+  color: var(--accent);
+  background: #151617;
+}
+td img {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+tfoot td {
+  font-weight: bold;
+  border-top: 1px solid #555;
+}
 .footer-note {
-  text-align:right;
-  margin-top:8px;
-  font-size:13px;
-  color:#ccc;
+  text-align: right;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #ccc;
 }
-.loading { color:var(--muted); margin:6px 0; }
-.small { color:#ccc; font-size:13px; }
+.loading { color: #aaa; margin: 6px 0; }
+.small { color: #ccc; font-size: 13px; }
 </style>
 </head>
 <body>
 <div class="viewport">
-  <div class="topbar">
-    <input id="usernameInput" placeholder="ユーザー名で絞り込み（空欄＝全員）">
-    <button class="btn" onclick="aggregate()">集計する</button>
-  </div>
-
+  <input id="usernameInput" placeholder="Filter by username (leave blank for all)">
+  <button onclick="aggregate()">Aggregate</button>
   <div class="panel">
-    <div id="status" class="loading">読み込み待機中...</div>
-    <table id="resultTable" style="display:none;">
-      <!-- 動的生成 -->
-    </table>
+    <div id="status" class="loading">Loading...</div>
+    <table id="resultTable" style="display:none;"></table>
     <div class="footer-note" id="blockCount"></div>
   </div>
 </div>
 
 <script>
-/* --- Supabase 設定（ここを差し替えてください） --- */
-const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co"; // ← 実際のURLに差し替え
+/* --- Supabase 設定 --- */
+const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co"; // 
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";                    // ← 実際のanon keyに差し替え
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-/* --- アイコンベース / 順序 --- */
+/* Item icons */
 const imgBase = "https://raw.githubusercontent.com/MenboLD/LD_Field/main/";
 const items = [
-  { key: "Unit", label: "Unit", img: imgBase + "icon_01_unit.png" },
-  { key: "Key", label: "Key", img: imgBase + "icon_02_free.png" },
-  { key: "Artifact", label: "Artifact", img: imgBase + "icon_03_artifacts.png" },
-  { key: "Scroll_30", label: "Scroll_30", img: imgBase + "icon_03_scroll_30.png" },
-  { key: "Scroll_100", label: "Scroll_100", img: imgBase + "icon_04_scroll_100.png" },
-  { key: "Scroll_300", label: "Scroll_300", img: imgBase + "icon_05_scroll_300.png" },
-  { key: "Mythstone", label: "Mythstone", img: imgBase + "icon_06_Mythstone.png" },
-  { key: "Chur", label: "Chur", img: imgBase + "icon_07_chur.png" },
-  { key: "Battery", label: "Battery", img: imgBase + "icon_08_pet_draw.png" },
-  { key: "Petfood", label: "Petfood", img: imgBase + "icon_09_pet_upgrade.png" }
+  { key: "Unit", img: imgBase + "icon_01_unit.png" },
+  { key: "Key", img: imgBase + "icon_02_free.png" },
+  { key: "Artifact", img: imgBase + "icon_03_artifacts.png" },
+  { key: "Scroll_30", img: imgBase + "icon_03_scroll_30.png" },
+  { key: "Scroll_100", img: imgBase + "icon_04_scroll_100.png" },
+  { key: "Scroll_300", img: imgBase + "icon_05_scroll_300.png" },
+  { key: "Mythstone", img: imgBase + "icon_06_Mythstone.png" },
+  { key: "Chur", img: imgBase + "icon_07_chur.png" },
+  { key: "Battery", img: imgBase + "icon_08_pet_draw.png" },
+  { key: "Petfood", img: imgBase + "icon_09_pet_upgrade.png" }
 ];
 
-/* フォーマット補助 */
-function fmtPct(count, total){
-  if(!total || total === 0) return "0.00%";
-  return ( (count / total * 100).toFixed(2) ) + "%";
+function fmtPct(count, total) {
+  if (!total) return "0.00%";
+  return ((count / total * 100).toFixed(2)) + "%";
 }
 
-/* JSON 安全パース（文字列 or オブジェクト両対応） */
-function parseMaybeJson(v){
-  if(!v) return null;
-  if(typeof v === "object") return v;
-  if(typeof v === "string"){
-    try { return JSON.parse(v); } catch(e) { return null; }
+function parseMaybeJson(v) {
+  if (!v) return null;
+  if (typeof v === "object") return v;
+  if (typeof v === "string") {
+    try { return JSON.parse(v); } catch { return null; }
   }
   return null;
 }
 
-/* 集計関数 */
-async function aggregate(){
-  const userFilter = document.getElementById("usernameInput").value.trim();
+async function aggregate() {
+  const username = document.getElementById("usernameInput").value.trim();
   const statusEl = document.getElementById("status");
   const table = document.getElementById("resultTable");
   const blockCountEl = document.getElementById("blockCount");
 
-  statusEl.textContent = "集計中...";
+  statusEl.textContent = "Aggregating...";
   table.style.display = "none";
   table.innerHTML = "";
   blockCountEl.textContent = "";
 
-  // すべての block_a〜block_f を取得
   let query = supabase.from("logs").select("username, block_a, block_b, block_c, block_d, block_e, block_f");
-  if(userFilter) query = query.eq("username", userFilter);
+  if (username) query = query.eq("username", username);
   const { data, error } = await query;
 
-  if(error){
-    statusEl.textContent = "データ取得エラー: " + error.message;
+  if (error) {
+    statusEl.textContent = "Error: " + error.message;
     return;
   }
-  if(!data || data.length === 0){
-    statusEl.textContent = "該当データなし";
+  if (!data || data.length === 0) {
+    statusEl.textContent = "No data found.";
     return;
   }
 
-  // 初期化
   const stats = {};
-  items.forEach(it => stats[it.key] = { gold:0, dia:0 });
+  items.forEach(it => stats[it.key] = { gold: 0, dia: 0 });
   let validBlocks = 0;
 
-  // 各行（ログ）をループ
   data.forEach(row => {
     const blockFields = ['block_a','block_b','block_c','block_d','block_e','block_f'];
     blockFields.forEach(field => {
-      let block = row[field];
-      if(!block) return;
-      const parsed = parseMaybeJson(block);
-      if(!parsed) return;
-
-      // ブロック内部がすべて NoneItem の場合は除外
-      const values = Object.values(parsed || {});
-      if(values.length === 0) return;
+      const parsed = parseMaybeJson(row[field]);
+      if (!parsed) return;
+      const values = Object.values(parsed);
+      if (values.length === 0) return;
       const allNone = values.every(v => v && v.src === "NoneItem");
-      if(allNone) return;
+      if (allNone) return;
 
-      // 有効ブロック数をカウント（空欄が1つでもあればそのブロックは既に除外されるため、ここは全スロット完全入力の前提）
       validBlocks++;
 
-      // 各スロットを集計
-      for(const k in parsed){
-        const slot = parsed[k];
-        if(!slot) continue;
+      // このブロックで登場した item×type を1回ずつカウント
+      const seenGold = new Set();
+      const seenDia = new Set();
+
+      values.forEach(slot => {
+        if (!slot || slot.src === "NoneItem") return;
         const src = slot.src;
         const type = slot.type;
-        if(!src || src === "NoneItem") continue;
-        if(!stats[src]) continue; // 定義外なら無視
-        if(type === "gold") stats[src].gold++;
-        else if(type === "diamond" || type === "dia") stats[src].dia++;
-      }
+        if (!stats[src]) return;
+
+        if (type === "gold" && !seenGold.has(src)) {
+          stats[src].gold++;
+          seenGold.add(src);
+        }
+        if ((type === "diamond" || type === "dia") && !seenDia.has(src)) {
+          stats[src].dia++;
+          seenDia.add(src);
+        }
+      });
     });
   });
 
-  // テーブル出力
-  // ヘッダ
-  let html = "<thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&amp;Dia</th><th>%</th></tr></thead><tbody>";
-
+  // build table
+  let html = "<thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th><th>%</th></tr></thead><tbody>";
   let totalGold = 0, totalDia = 0, totalBoth = 0;
-  items.forEach(it=>{
+
+  items.forEach(it => {
     const g = stats[it.key].gold;
     const d = stats[it.key].dia;
     const both = g + d;
     totalGold += g; totalDia += d; totalBoth += both;
 
-    // Gold列とDia列は "count(percent)" フォーマット
-    const goldCell = `${g}<span class="small">(${fmtPct(g, validBlocks)})</span>`;
-    const diaCell  = `${d}<span class="small">(${fmtPct(d, validBlocks)})</span>`;
+    const goldCell = `${g} <span class='small'>(${fmtPct(g, validBlocks)})</span>`;
+    const diaCell  = `${d} <span class='small'>(${fmtPct(d, validBlocks)})</span>`;
     const bothCell = `${both}`;
     const pctCell  = fmtPct(both, validBlocks);
 
     html += `
       <tr>
-        <td class="item-cell"><img src="${it.img}" alt="${it.key}"> &nbsp; <span class="small">${it.label}</span></td>
+        <td><img src="${it.img}" alt="${it.key}"></td>
         <td>${goldCell}</td>
         <td>${diaCell}</td>
         <td>${bothCell}</td>
@@ -209,14 +228,15 @@ async function aggregate(){
     `;
   });
 
-  html += "</tbody>";
-  html += `<tfoot><tr><td>合計</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>-</td></tr></tfoot>`;
-
+  html += `</tbody><tfoot><tr><td>Total</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>-</td></tr></tfoot>`;
   table.innerHTML = html;
-  document.getElementById("blockCount").innerText = `Total number of blocks: ${validBlocks}`;
   table.style.display = "table";
-  statusEl.textContent = "完了";
+  blockCountEl.textContent = `Total number of blocks: ${validBlocks}`;
+  statusEl.textContent = "Completed.";
 }
+
+/* ページ読み込み時に自動実行 */
+window.addEventListener("DOMContentLoaded", () => aggregate());
 </script>
 </body>
 </html>
