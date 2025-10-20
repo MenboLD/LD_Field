@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>集計結果 - Lucky Defense Logs</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -11,8 +11,8 @@
   --panel:#131417;
   --muted:#7a7f86;
   --accent:#ffce00;
-  --cell-size:44px;
   --max-content-w:450px;
+  --icon-size:28px;
 }
 html,body{height:100%;margin:0;}
 body{
@@ -48,18 +48,21 @@ table {
 }
 th, td {
   text-align:center;
-  padding:6px;
+  padding:8px;
   border-bottom:1px solid #333;
 }
-th { color:var(--accent); }
-td img { width:28px; height:28px; object-fit:contain; }
+th { color:var(--accent); background:#151617; }
+td img { width:var(--icon-size); height:var(--icon-size); object-fit:contain; display:inline-block; vertical-align:middle; }
+td.item-cell { text-align:left; padding-left:12px; }
 tfoot td { font-weight:bold; border-top:1px solid #555; }
 .footer-note {
   text-align:right;
-  margin-top:6px;
+  margin-top:8px;
   font-size:13px;
   color:#ccc;
 }
+.loading { color:var(--muted); margin:6px 0; }
+.small { color:#ccc; font-size:13px; }
 </style>
 </head>
 <body>
@@ -68,114 +71,151 @@ tfoot td { font-weight:bold; border-top:1px solid #555; }
     <input id="usernameInput" placeholder="ユーザー名で絞り込み（空欄＝全員）">
     <button class="btn" onclick="aggregate()">集計する</button>
   </div>
+
   <div class="panel">
-    <div id="status">　</div>
-    <table id="resultTable"></table>
+    <div id="status" class="loading">読み込み待機中...</div>
+    <table id="resultTable" style="display:none;">
+      <!-- 動的生成 -->
+    </table>
     <div class="footer-note" id="blockCount"></div>
   </div>
 </div>
 
 <script>
-const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+/* --- Supabase 設定（ここを差し替えてください） --- */
+const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co"; // ← 実際のURLに差し替え
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";                    // ← 実際のanon keyに差し替え
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+/* --- アイコンベース / 順序 --- */
 const imgBase = "https://raw.githubusercontent.com/MenboLD/LD_Field/main/";
 const items = [
-  { name: "Unit", img: imgBase+"icon_01_unit.png" },
-  { name: "Key", img: imgBase+"icon_02_free.png" },
-  { name: "Artifact", img: imgBase+"icon_03_artifacts.png" },
-  { name: "Scroll_30", img: imgBase+"icon_03_scroll_30.png" },
-  { name: "Scroll_100", img: imgBase+"icon_04_scroll_100.png" },
-  { name: "Scroll_300", img: imgBase+"icon_05_scroll_300.png" },
-  { name: "Mythstone", img: imgBase+"icon_06_Mythstone.png" },
-  { name: "Chur", img: imgBase+"icon_07_chur.png" },
-  { name: "Battery", img: imgBase+"icon_08_pet_draw.png" },
-  { name: "Petfood", img: imgBase+"icon_09_pet_upgrade.png" }
+  { key: "Unit", label: "Unit", img: imgBase + "icon_01_unit.png" },
+  { key: "Key", label: "Key", img: imgBase + "icon_02_free.png" },
+  { key: "Artifact", label: "Artifact", img: imgBase + "icon_03_artifacts.png" },
+  { key: "Scroll_30", label: "Scroll_30", img: imgBase + "icon_03_scroll_30.png" },
+  { key: "Scroll_100", label: "Scroll_100", img: imgBase + "icon_04_scroll_100.png" },
+  { key: "Scroll_300", label: "Scroll_300", img: imgBase + "icon_05_scroll_300.png" },
+  { key: "Mythstone", label: "Mythstone", img: imgBase + "icon_06_Mythstone.png" },
+  { key: "Chur", label: "Chur", img: imgBase + "icon_07_chur.png" },
+  { key: "Battery", label: "Battery", img: imgBase + "icon_08_pet_draw.png" },
+  { key: "Petfood", label: "Petfood", img: imgBase + "icon_09_pet_upgrade.png" }
 ];
 
+/* フォーマット補助 */
+function fmtPct(count, total){
+  if(!total || total === 0) return "0.00%";
+  return ( (count / total * 100).toFixed(2) ) + "%";
+}
+
+/* JSON 安全パース（文字列 or オブジェクト両対応） */
+function parseMaybeJson(v){
+  if(!v) return null;
+  if(typeof v === "object") return v;
+  if(typeof v === "string"){
+    try { return JSON.parse(v); } catch(e) { return null; }
+  }
+  return null;
+}
+
+/* 集計関数 */
 async function aggregate(){
   const userFilter = document.getElementById("usernameInput").value.trim();
-  document.getElementById("status").innerText = "集計中...";
-  document.getElementById("resultTable").innerHTML = "";
-  document.getElementById("blockCount").innerText = "";
+  const statusEl = document.getElementById("status");
+  const table = document.getElementById("resultTable");
+  const blockCountEl = document.getElementById("blockCount");
 
+  statusEl.textContent = "集計中...";
+  table.style.display = "none";
+  table.innerHTML = "";
+  blockCountEl.textContent = "";
+
+  // すべての block_a〜block_f を取得
   let query = supabase.from("logs").select("username, block_a, block_b, block_c, block_d, block_e, block_f");
   if(userFilter) query = query.eq("username", userFilter);
   const { data, error } = await query;
 
   if(error){
-    document.getElementById("status").innerText = "エラー：" + error.message;
+    statusEl.textContent = "データ取得エラー: " + error.message;
     return;
   }
   if(!data || data.length === 0){
-    document.getElementById("status").innerText = "該当データなし";
+    statusEl.textContent = "該当データなし";
     return;
   }
 
-  document.getElementById("status").innerText = "完了";
-
+  // 初期化
   const stats = {};
-  items.forEach(it => stats[it.name] = { gold:0, dia:0 });
-
+  items.forEach(it => stats[it.key] = { gold:0, dia:0 });
   let validBlocks = 0;
 
-  for(const row of data){
-    const blocks = [row.block_a, row.block_b, row.block_c, row.block_d, row.block_e, row.block_f];
-    for(const block of blocks){
-      if(!block) continue;
-      let itemsInBlock = block;
-      if(typeof itemsInBlock === "string"){
-        try { itemsInBlock = JSON.parse(itemsInBlock); } catch(e){ continue; }
-      }
-      const allNone = Object.values(itemsInBlock).every(v => v.src === "NoneItem");
-      if(allNone) continue;
+  // 各行（ログ）をループ
+  data.forEach(row => {
+    const blockFields = ['block_a','block_b','block_c','block_d','block_e','block_f'];
+    blockFields.forEach(field => {
+      let block = row[field];
+      if(!block) return;
+      const parsed = parseMaybeJson(block);
+      if(!parsed) return;
+
+      // ブロック内部がすべて NoneItem の場合は除外
+      const values = Object.values(parsed || {});
+      if(values.length === 0) return;
+      const allNone = values.every(v => v && v.src === "NoneItem");
+      if(allNone) return;
+
+      // 有効ブロック数をカウント（空欄が1つでもあればそのブロックは既に除外されるため、ここは全スロット完全入力の前提）
       validBlocks++;
 
-      for(const key in itemsInBlock){
-        const it = itemsInBlock[key];
-        if(!it || it.src === "NoneItem") continue;
-        if(!stats[it.src]) continue;
-        if(it.type === "gold") stats[it.src].gold++;
-        else if(it.type === "diamond") stats[it.src].dia++;
+      // 各スロットを集計
+      for(const k in parsed){
+        const slot = parsed[k];
+        if(!slot) continue;
+        const src = slot.src;
+        const type = slot.type;
+        if(!src || src === "NoneItem") continue;
+        if(!stats[src]) continue; // 定義外なら無視
+        if(type === "gold") stats[src].gold++;
+        else if(type === "diamond" || type === "dia") stats[src].dia++;
       }
-    }
-  }
+    });
+  });
 
-  // テーブル作成
-  const table = document.getElementById("resultTable");
-  let html = `
-    <thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th><th>%</th></tr></thead>
-    <tbody>
-  `;
+  // テーブル出力
+  // ヘッダ
+  let html = "<thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&amp;Dia</th><th>%</th></tr></thead><tbody>";
 
-  let totalGold=0, totalDia=0, totalBoth=0;
-  for(const it of items){
-    const g = stats[it.name].gold;
-    const d = stats[it.name].dia;
+  let totalGold = 0, totalDia = 0, totalBoth = 0;
+  items.forEach(it=>{
+    const g = stats[it.key].gold;
+    const d = stats[it.key].dia;
     const both = g + d;
     totalGold += g; totalDia += d; totalBoth += both;
-    const pct = validBlocks > 0 ? ((both / validBlocks) * 100).toFixed(2) : "0.00";
+
+    // Gold列とDia列は "count(percent)" フォーマット
+    const goldCell = `${g}<span class="small">(${fmtPct(g, validBlocks)})</span>`;
+    const diaCell  = `${d}<span class="small">(${fmtPct(d, validBlocks)})</span>`;
+    const bothCell = `${both}`;
+    const pctCell  = fmtPct(both, validBlocks);
+
     html += `
       <tr>
-        <td><img src="${it.img}" alt="${it.name}"></td>
-        <td>${g}</td>
-        <td>${d}</td>
-        <td>${both}</td>
-        <td>${pct}%</td>
+        <td class="item-cell"><img src="${it.img}" alt="${it.key}"> &nbsp; <span class="small">${it.label}</span></td>
+        <td>${goldCell}</td>
+        <td>${diaCell}</td>
+        <td>${bothCell}</td>
+        <td>${pctCell}</td>
       </tr>
     `;
-  }
+  });
 
-  html += `
-    </tbody>
-    <tfoot>
-      <tr><td>合計</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>-</td></tr>
-    </tfoot>
-  `;
+  html += "</tbody>";
+  html += `<tfoot><tr><td>合計</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>-</td></tr></tfoot>`;
+
   table.innerHTML = html;
-
   document.getElementById("blockCount").innerText = `Total number of blocks: ${validBlocks}`;
+  table.style.display = "table";
+  statusEl.textContent = "完了";
 }
 </script>
 </body>
