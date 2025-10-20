@@ -160,6 +160,10 @@ body{
 <body>
 <div class="viewport">
   <div class="topbar">
+<div class="username-input">
+  <label>ユーザー名：</label>
+  <input type="text" id="username" placeholder="名前を入力">
+</div>
     <button id="sendBtn" class="btn">SEND</button>
     <button id="resetBtn" class="btn secondary">All Reset</button>
   </div>
@@ -356,6 +360,20 @@ document.addEventListener('DOMContentLoaded',()=>{
   nextIndex['A']=2;
   refreshEditingHighlight('A');
 });
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function loadLogs() {
+  const { data, error } = await supabase.from('logs').select('*').order('timestamp', { ascending: false });
+  if (error) { console.error(error); return; }
+  const container = document.getElementById('logList');
+  data.forEach(row=>{
+    const div = document.createElement('div');
+    div.textContent = `${row.username} - ${new Date(row.timestamp).toLocaleString()}`;
+    container.appendChild(div);
+  });
+}
+loadLogs();
 </script>
 </body>
 </html>
