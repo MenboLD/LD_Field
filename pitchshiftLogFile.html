@@ -3,9 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>LD Daily Shop — 編集モック (最終調整版)</title>
+<title>LD Daily Shop — 編集モック (sanitize & send)</title>
 <style>
-/* --- 省略：既存スタイルそのまま --- */
 :root{
   --bg:#0f1113;
   --panel:#131417;
@@ -17,15 +16,110 @@
   --grid-gap:6px;
   --max-content-w:450px;
 }
-/* body, .viewport, .topbar, .btn, .blocks, .block, .cell, .products ... 既存スタイル保持 */
+html,body{height:100%;margin:0;}
+body{
+  font-family:"Hiragino Kaku Gothic ProN","Segoe UI",Roboto,sans-serif;
+  background:var(--bg);
+  color:#fff;
+  display:flex;
+  justify-content:center;
+  padding:18px 0;
+}
+.viewport{
+  width: min(92vw, var(--max-content-w));
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 0 4vw;
+}
+.topbar { display:flex; gap:8px; margin-bottom:10px; }
+.btn { flex:1; background: linear-gradient(180deg,#ffce00,#d4a000); border-radius:10px; padding:10px; font-weight:700; color:#111; border:0; box-shadow:0 4px #b38a00; cursor:pointer; transition: transform .08s, box-shadow .08s; }
+.btn:active { transform: translateY(3px); box-shadow:0 2px #b38a00; }
+.btn.secondary { background: linear-gradient(180deg,#00b4ff,#0072d4); color:#fff; box-shadow:0 4px #005ea8; }
+
+/* blocks */
+.blocks { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--block-gap); margin-bottom:12px; align-items: start; }
+.block {
+  background:var(--panel);
+  padding:8px;
+  border-radius:10px;
+  position:relative;
+  display:grid;
+  grid-template-columns: repeat(3, var(--cell-size));
+  grid-template-rows: repeat(2, var(--cell-size));
+  gap: var(--grid-gap);
+  justify-content:center;
+}
+.block .label { position:absolute; top:6px; left:8px; font-size:12px; color:var(--muted); }
+
+.cell {
+  width:var(--cell-size);
+  height:var(--cell-size);
+  border-radius:6px;
+  background:#222;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  overflow:hidden;
+  box-sizing:border-box;
+  transition: box-shadow .08s, outline .08s, background .08s;
+}
+.cell img{ max-width:100%; max-height:100%; display:block; pointer-events:none; }
+
+.cell.editing {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+  background: #222;
+}
+
+.undo-cell { background:transparent; cursor:pointer; padding:2px; }
+.undo-cell img{ width:100%; height:100%; object-fit:contain; }
+
+.products { display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+.price-frame { border-radius:10px; padding:8px; display: grid; grid-template-columns: repeat(6, 1fr); gap:8px; align-items:center; width:100%; box-sizing:border-box; overflow:visible; }
+.gold-frame { border:2px solid gold; background: rgba(255,215,0,0.06); padding:8px; }
+.dia-frame  { border:2px solid deepskyblue; background: rgba(0,191,255,0.06); padding:8px; }
+
+.prod-item {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius:8px;
+  background:#1b1d20;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition: transform .06s;
+  box-sizing: border-box;
+}
+.prod-item img{ width:70%; height:auto; display:block; }
+
+.prod-empty{ background:transparent; cursor:default; }
+
+.cell[data-type="gold"]{ background: rgba(255,235,180,0.88); }
+.cell[data-type="diamond"]{  background: rgba(200,235,255,0.88); }
+
+.legend{ display:flex; gap:18px; justify-content:center; align-items:center; color:#cfcfcf; font-size:14px; margin-top:6px;}
+.legend .box{ width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; border:2px solid; }
+.box.gold{ border-color:gold; } .box.diamond{ border-color:deepskyblue; }
+.box img{ width:72%; height:auto; display:block; }
+.hint{ font-size:12px; color:#aaa; text-align:center; margin-top:8px; }
+
+@media (max-width:420px){
+  :root{ --cell-size:40px; --prod-size:52px; --block-gap:8px; }
+  .viewport{ padding: 0 4vw; }
+}
+@media (max-width:360px){
+  :root{ --cell-size:36px; --prod-size:48px; --block-gap:6px; }
+}
 </style>
 </head>
 <body>
 <div class="viewport">
   <div class="topbar">
     <div style="margin:10px 0; text-align:center;">
-      <label for="username" style="font-weight:bold;">ユーザー名：</label>
-      <input id="username" type="text" placeholder="（任意）名前を入力" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc;">
+      <label for="username" style="font-weight:bold;">User Name</label>
+      <input id="username" type="text" placeholder="Enter your name (optional)" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc;">
     </div>
     <button id="sendBtn" class="btn">SEND</button>
     <button id="resetBtn" class="btn secondary">All Reset</button>
@@ -52,12 +146,42 @@
     </script>
   </div>
 
-  <!-- 下段 Gold / Dia 商品群（省略: 既存コードそのまま） -->
   <div class="products">
-    <!-- gold-frame, dia-frame 省略 -->
+    <div class="price-frame gold-frame" id="goldFrame">
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" alt=""></div>
+    </div>
+
+    <div class="price-frame dia-frame" id="diaFrame">
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_07_chur.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_07_chur.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_pet_draw.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_pet_draw.png" alt=""></div>
+      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_upgrade.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_upgrade.png" alt=""></div>
+    </div>
   </div>
 
-  <!-- legend, hint 省略 -->
+  <div class="legend">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="box gold"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_00_type_gold.png" alt="gold"></div>
+      <div>… Gold</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="box diamond"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_00_type_dia.png" alt="dia"></div>
+      <div>… Diamond</div>
+    </div>
+  </div>
+
+  <div class="hint">下段で選択→上段の編集中マスへ配置。UNDOは各ブロック左上。</div>
 </div>
 
 <script>
@@ -70,12 +194,12 @@ let currentBlock = 'A';
 
 /* 初期化 */
 blocks.forEach(b=>{
-  slots[b] = [null,null,null,null,null,null,null];
+  slots[b] = [null,null,null,null,null,null,null]; // 0..6, 1=UNDO, 2..6 items
   history[b] = [];
   nextIndex[b] = 2;
 });
 
-/* DOM helper */
+/* helper DOM */
 function cellEl(block,pos){ return document.querySelector(`.cell[data-block="${block}"][data-pos="${pos}"]`); }
 function getNextBlock(block){ const i = blocks.indexOf(block); return blocks[(i+1)%blocks.length]; }
 
@@ -98,16 +222,16 @@ function focusCell(e){
   refreshEditingHighlight(block);
 }
 
-/* 配置 */
+/* 配置（商品選択→上段配置） */
 function placeProduct(e){
   const item = e.currentTarget;
   const src = item.dataset.src;
-  const type = item.dataset.type || null;
+  const type = item.dataset.type || null; // "gold" or "diamond"
   const block = currentBlock;
   const idx = nextIndex[block];
   if(!(idx>=2 && idx<=6)) return;
 
-  slots[block][idx] = {src,type};
+  slots[block][idx] = { src, type };
   history[block].push(idx);
 
   const target = cellEl(block,idx);
@@ -162,94 +286,188 @@ document.addEventListener('DOMContentLoaded',()=>{
   refreshEditingHighlight('A');
 });
 
-/* --- sanitizeBlocks() 自動修正処理 --- */
-function sanitizeBlocks(blocks){
-  const sanitized = {};
-  for(const [blockKey, blockArr] of Object.entries(blocks)){
-    const items = blockArr.slice(2,7).map(v => v ? v.src : null).filter(Boolean);
+/* =====================
+   sanitizeBlocks 実装
+   - 入力: slots (元の構造)
+   - 出力: sanitizedBlocks: { A: null | {1:{src,type}|"NoneItem", ...,5:...}, ... }
+     （出力は各ブロックが null＝送信除外、または 1..5 のキーを持つオブジェクト）
+   ルール:
+    ・ブロック内に NoneItem（未入力）が含まれる場合 → 全部 NoneItem（結果：null）
+    ・同一種別かつ同価格（src と type が同じ） の重複があれば：
+       - 3つ以上 → 全部 NoneItem（null）
+       - ちょうど2つ → その2つのうち一方を type='gold'、もう一方を type='diamond' に変換
+   注: slots の index 2..6 を対象（5アイテム）
+   ===================== */
+function sanitizeBlocks(slotsInput){
+  const result = {};
 
-    // 1〜4個 → 全消去
-    if(items.length>0 && items.length<5){
-      sanitized[blockKey] = Array(7).fill(null);
+  for(const b of blocks){
+    const arr = slotsInput[b] || [null,null,null,null,null,null,null];
+    // extract items for pos 2..6
+    const items = [];
+    for(let i=2;i<=6;i++){
+      const it = arr[i];
+      if(it && it.src) items.push({ idx:i, src: it.src, type: it.type || null });
+      else items.push({ idx:i, src: null, type: null });
+    }
+
+    // if any empty (src null) --> rule ② 全消去 -> mark as null (send exclude)
+    const hasEmpty = items.some(it => !it.src);
+    if(hasEmpty){
+      // This block becomes excluded
+      result[b] = null;
       continue;
     }
 
-    // 重複チェック
-    const count = {};
-    items.forEach(src => count[src] = (count[src]||0)+1);
-    const duplicates = Object.entries(count).filter(([_,c])=>c>=2);
+    // Count duplicates by combination of src + type (same price kind & same species)
+    // But spec: "同価格種類かつ同種アイテム" -> detect by same src AND same type value (both gold/diamond or both null)
+    // We'll count by src + '|' + (type || 'none')
+    const counts = {};
+    for(const it of items){
+      const key = `${it.src}|${it.type||'none'}`;
+      counts[key] = (counts[key] || 0) + 1;
+    }
 
-    if(duplicates.some(([_,c])=>c>=3)){
-      sanitized[blockKey] = Array(7).fill(null);
+    // If any count >= 3 => rule a-2 全消去
+    const anyThreeOrMore = Object.values(counts).some(c => c >= 3);
+    if(anyThreeOrMore){
+      result[b] = null;
       continue;
     }
 
-    if(duplicates.length===0){
-      sanitized[blockKey] = blockArr.slice();
-      continue;
+    // If there is any key with count==2 => rule a-1: convert one to gold, one to diamond
+    // Note: It's possible multiple distinct items each occur twice — we'll handle each pair independently.
+    // We'll build a new block items copy
+    const newBlock = {}; // will hold positions 1..5 mapped from original 2..6
+    // initialize with original src/type
+    for(let i=0;i<items.length;i++){
+      const posKey = i+1; // 1..5 for returned structure
+      newBlock[posKey] = { src: items[i].src, type: items[i].type || null };
     }
 
-    // 重複2個 → _G / _D に分離
-    const newBlock = blockArr.slice();
-    duplicates.forEach(([src,_])=>{
-      let cnt=0;
-      for(let i=2;i<=6;i++){
-        if(newBlock[i] && newBlock[i].src===src){
-          cnt++;
-          newBlock[i] = {...newBlock[i], src: src + (cnt===1 ? "_G":"_D")};
+    // For each duplicate key with count==2, find its two positions and set types to gold/diamond
+    for(const [key, c] of Object.entries(counts)){
+      if(c === 2){
+        // parse src and oldType from key
+        const [srcVal, oldType] = key.split('|');
+        let found = 0;
+        for(let i=0;i<items.length;i++){
+          if(items[i].src === srcVal && (items[i].type||'none') === oldType){
+            found++;
+            const posKey = i+1;
+            // assign types: first found -> gold, second -> diamond
+            if(found === 1) newBlock[posKey].type = 'gold';
+            else if(found === 2) newBlock[posKey].type = 'diamond';
+          }
         }
       }
-    });
-    sanitized[blockKey] = newBlock;
-  }
-  return sanitized;
-}
+    }
 
-/* --- Supabase送信 --- */
+    // If no duplicates => keep original types (but ensure type is 'gold' or 'diamond' if present)
+    // Finalize: ensure every slot has {src,type} where type is "gold"/"diamond" or null
+    for(let k=1;k<=5;k++){
+      const it = newBlock[k];
+      if(!it || !it.src){
+        newBlock[k] = "NoneItem"; // guard, though we already filtered empties
+      } else {
+        // normalize type -> if null, leave as null; but we prefer to keep string "gold"/"diamond" or null
+        if(it.type !== 'gold' && it.type !== 'diamond') {
+          // keep original as-is (could be null) — for robustness set to null
+          newBlock[k].type = null;
+        }
+      }
+    }
+
+    // All checks done: assign result[b] the object with keys 1..5
+    result[b] = newBlock;
+  }
+
+  return result;
+}
+</script>
+
+<!-- Supabase読み込み -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = "https://あなたのプロジェクトURL.supabase.co";
-const SUPABASE_KEY = "あなたのanonキー";
+const SUPABASE_URL = "https://cxgbloauhimuhdjlvwvh.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// アイコンURL -> 短縮名マップ（必要ならここで短縮化）
+const iconMap = {
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png": "Unit",
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png": "Key",
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png": "Artifact",
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png": "Scroll_30",
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png": "Scroll_100",
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png": "Scroll_300",
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png": "Mythstone",
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_07_chur.png": "Chur",
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_pet_draw.png": "Battery",
+  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_upgrade.png": "Petfood"
+};
+
+// 空判定
 function isBlank(str){ return (!str || /^\s*$/.test(str)); }
 
+// normalize: sanitized block (result from sanitizeBlocks) -> payload format
+// input: sanitizedBlock either null (exclude) or object {1:{src,type}|"NoneItem",...,5:...}
+// output: null or object with keys "1".."5" each either "NoneItem" or {srcShort, type}
+function normalizeSanitizedBlock(sanitizedBlock){
+  if(!sanitizedBlock) return null;
+  const out = {};
+  for(let i=1;i<=5;i++){
+    const v = sanitizedBlock[i];
+    if(!v || v === "NoneItem") {
+      out[String(i)] = "NoneItem";
+    } else {
+      // convert src url -> short name if mapping exists
+      const srcShort = iconMap[v.src] ? iconMap[v.src] : v.src;
+      out[String(i)] = { src: srcShort, type: v.type ? v.type : null };
+    }
+  }
+  return out;
+}
+
 async function sendDataToSupabase(){
-  let username = document.getElementById('username').value.trim();
+  const nameInput = document.getElementById('username');
+  let username = nameInput ? nameInput.value.trim() : '';
   if(isBlank(username)) username = "NoneName";
 
-  const sanitized = sanitizeBlocks(slots);
+  // sanitize the current slots
+  const sanitized = sanitizeBlocks(slots); // returns {A: null|obj, B: ...}
 
-  function normalizeBlock(blockArr){
-    const result = {};
-    for(let i=1;i<=6;i++){
-      const slot = blockArr[i];
-      result[i] = (slot && slot.src) ? slot.src : "NoneItem";
-    }
-    return result;
-  }
-
-  if(Object.values(sanitized).every(b=>b.slice(2,7).every(v=>v===null))){
-    alert("入力が不完全または無効なため送信できません。");
+  // if ALL blocks are null -> nothing to send
+  const allNull = blocks.every(b => sanitized[b] === null);
+  if(allNull){
+    alert("入力が不完全または無効なため送信できません（全ブロック無効）。");
     return;
   }
 
+  // build payload — for database columns block_a..block_f, provide null or object
   const payload = {
     username,
-    block_a: normalizeBlock(sanitized['A']),
-    block_b: normalizeBlock(sanitized['B']),
-    block_c: normalizeBlock(sanitized['C']),
-    block_d: normalizeBlock(sanitized['D']),
-    block_e: normalizeBlock(sanitized['E']),
-    block_f: normalizeBlock(sanitized['F']),
+    block_a: normalizeSanitizedBlock(sanitized['A']),
+    block_b: normalizeSanitizedBlock(sanitized['B']),
+    block_c: normalizeSanitizedBlock(sanitized['C']),
+    block_d: normalizeSanitizedBlock(sanitized['D']),
+    block_e: normalizeSanitizedBlock(sanitized['E']),
+    block_f: normalizeSanitizedBlock(sanitized['F']),
+    created_at: new Date().toISOString()
   };
 
+  // send
   const { data, error } = await supabase.from('logs').insert([payload]);
-  const btn = document.getElementById('sendBtn');
-  btn.animate([{transform:'scale(1)'},{transform:'scale(0.98)'},{transform:'scale(1)'}], {duration:180});
 
-  if(error) alert("送信エラー: "+error.message);
-  else alert("送信完了しました！");
+  const btn=document.getElementById('sendBtn');
+  btn.animate([{transform:'scale(1)'},{transform:'scale(0.98)'},{transform:'scale(1)'}],{duration:180});
+
+  if(error){
+    console.error(error);
+    alert("送信エラー: " + error.message);
+  }else{
+    alert("送信完了しました！");
+  }
 }
 
 document.getElementById('sendBtn').addEventListener('click', async ()=>{ await sendDataToSupabase(); });
