@@ -2,18 +2,64 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>アイテム出現率集計</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>Pitchshift Log Viewer</title>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background-color: #eee; }
+    body {
+      font-family: sans-serif;
+      background: #f4f6f8;
+      padding: 1rem;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    #username {
+      margin-bottom: 0.5rem;
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 200px;
+      text-align: center;
+    }
+    #fetchBtn {
+      padding: 8px 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #4c8bf5;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    table {
+      margin: 0 auto;
+      border-collapse: collapse;
+      width: 90%;
+      max-width: 600px;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border-bottom: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    tr:last-child td {
+      font-weight: bold;
+      background-color: #fafafa;
+    }
   </style>
 </head>
 <body>
-  <h1>アイテム出現率集計</h1>
-  <p>ページを再読込すると最新の集計が反映されます。</p>
+  <h1>Pitchshift Log Viewer</h1>
+  <input type="text" id="username" placeholder="ユーザー名（任意）">
+  <button id="fetchBtn">再集計</button>
 
   <table id="resultTable">
     <thead>
@@ -28,11 +74,13 @@
     <tbody></tbody>
   </table>
 
-  <script>
-    // 🔧 Supabase設定（ここをあなたの値に変更）
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    // 🔧 Supabase設定（ここをあなたの値に書き換える）
     const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const ITEM_LIST = [
       "Unit", "Key", "Artifact", "Scroll_30",
@@ -40,35 +88,45 @@
       "Chur", "Battery", "Petfood"
     ];
 
-    async function loadData() {
-      const { data, error } = await supabase.from("pitchshiftLogFile").select("items");
+    const tbody = document.querySelector("#resultTable tbody");
+    const fetchBtn = document.getElementById("fetchBtn");
+    const usernameInput = document.getElementById("username");
+
+    async function loadData(username = "") {
+      tbody.innerHTML = "<tr><td colspan='5'>読み込み中...</td></tr>";
+
+      let query = supabase.from("pitchshiftLogFile").select("username, items");
+      if (username.trim()) query = query.eq("username", username.trim());
+
+      const { data, error } = await query;
       if (error) {
-        console.error(error);
+        tbody.innerHTML = `<tr><td colspan="5">エラー: ${error.message}</td></tr>`;
+        return;
+      }
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5">該当データなし</td></tr>`;
         return;
       }
 
       const count = {};
-      ITEM_LIST.forEach(name => count[name] = { gold: 0, dia: 0 });
+      ITEM_LIST.forEach(n => count[n] = { gold: 0, dia: 0 });
 
       for (const row of data) {
         let items = row.items;
-
-        // JSON文字列のままならパース
         if (typeof items === "string") {
           try { items = JSON.parse(items); } catch { continue; }
         }
         if (!items || typeof items !== "object") continue;
 
-        // NoneItemを含むブロックは除外
         const values = Object.values(items);
-        if (values.some(i => i.src === "NoneItem")) continue;
+        if (values.some(v => !v || v.src === "NoneItem")) continue;
 
-        // 5スロット分を走査
         for (const i of values) {
           if (!i || !i.src) continue;
-          const name = ITEM_LIST.find(n => i.src === n);
+          const name = ITEM_LIST.find(n => n === i.src);
           if (!name) continue;
 
+          // カウントルール
           if (i.type === "gold") count[name].gold++;
           else if (i.type === "diamond") count[name].dia++;
         }
@@ -78,25 +136,31 @@
       const totalDia = Object.values(count).reduce((a, b) => a + b.dia, 0);
       const totalAll = totalGold + totalDia;
 
-      const tbody = document.querySelector("#resultTable tbody");
       tbody.innerHTML = "";
-
       ITEM_LIST.forEach(name => {
         const gold = count[name].gold;
         const dia = count[name].dia;
         const both = gold + dia;
         const rate = totalAll > 0 ? ((both / totalAll) * 100).toFixed(2) : "0.00";
-        tbody.innerHTML += `<tr>
-          <td>${name}</td><td>${gold}</td><td>${dia}</td><td>${both}</td><td>${rate}</td>
-        </tr>`;
+        tbody.innerHTML += `
+          <tr>
+            <td>${name}</td>
+            <td>${gold}</td>
+            <td>${dia}</td>
+            <td>${both}</td>
+            <td>${rate}</td>
+          </tr>
+        `;
       });
-
-      tbody.innerHTML += `<tr style="font-weight:bold;">
-        <td>合計</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalAll}</td><td>100.00</td>
-      </tr>`;
+      tbody.innerHTML += `
+        <tr>
+          <td>合計</td>
+          <td>${totalGold}</td>
+          <td>${totalDia}</td>
+          <td>${totalAll}</td>
+          <td>100.00</td>
+        </tr>
+      `;
     }
 
-    loadData();
-  </script>
-</body>
-</html>
+    fetchBtn.addEventLi
