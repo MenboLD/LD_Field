@@ -1,170 +1,182 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Pitchshift Log Viewer</title>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f4f6f8;
-      padding: 1rem;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 1rem;
-    }
-    #username {
-      margin-bottom: 0.5rem;
-      padding: 6px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      width: 200px;
-      text-align: center;
-    }
-    #fetchBtn {
-      padding: 8px 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background: #4c8bf5;
-      color: #fff;
-      margin-bottom: 12px;
-    }
-    table {
-      margin: 0 auto;
-      border-collapse: collapse;
-      width: 90%;
-      max-width: 600px;
-      background: #fff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    th, td {
-      border-bottom: 1px solid #ddd;
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background-color: #f0f0f0;
-    }
-    tr:last-child td {
-      font-weight: bold;
-      background-color: #fafafa;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集計結果 - Lucky Defense Logs</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0f1113;
+  --panel:#131417;
+  --muted:#7a7f86;
+  --accent:#ffce00;
+  --cell-size:44px;
+  --max-content-w:450px;
+}
+html,body{height:100%;margin:0;}
+body{
+  font-family:"Hiragino Kaku Gothic ProN","Segoe UI",Roboto,sans-serif;
+  background:var(--bg);
+  color:#fff;
+  display:flex;
+  justify-content:center;
+  padding:18px 0;
+}
+.viewport{
+  width:min(92vw,var(--max-content-w));
+  margin:0 auto;
+  box-sizing:border-box;
+  padding:0 4vw;
+}
+.topbar { display:flex; gap:8px; margin-bottom:10px; }
+.btn { flex:1; background:linear-gradient(180deg,#ffce00,#d4a000); border-radius:10px; padding:10px; font-weight:700; color:#111; border:0; box-shadow:0 4px #b38a00; cursor:pointer; transition:transform .08s,box-shadow .08s; }
+.btn:active { transform:translateY(3px); box-shadow:0 2px #b38a00; }
+input { flex:2; border-radius:10px; border:1px solid #444; background:#1a1c1f; color:#fff; padding:8px; font-size:14px; }
+
+.panel {
+  background:var(--panel);
+  padding:10px;
+  border-radius:10px;
+  box-sizing:border-box;
+}
+table {
+  width:100%;
+  border-collapse:collapse;
+  margin-top:8px;
+  font-size:14px;
+}
+th, td {
+  text-align:center;
+  padding:6px;
+  border-bottom:1px solid #333;
+}
+th { color:var(--accent); }
+td img { width:28px; height:28px; object-fit:contain; }
+tfoot td { font-weight:bold; border-top:1px solid #555; }
+.footer-note {
+  text-align:right;
+  margin-top:6px;
+  font-size:13px;
+  color:#ccc;
+}
+</style>
 </head>
 <body>
-  <h1>Pitchshift Log Viewer</h1>
-  <input type="text" id="username" placeholder="ユーザー名（任意）">
-  <button id="fetchBtn">再集計</button>
+<div class="viewport">
+  <div class="topbar">
+    <input id="usernameInput" placeholder="ユーザー名で絞り込み（空欄＝全員）">
+    <button class="btn" onclick="aggregate()">集計する</button>
+  </div>
+  <div class="panel">
+    <div id="status">　</div>
+    <table id="resultTable"></table>
+    <div class="footer-note" id="blockCount"></div>
+  </div>
+</div>
 
-  <table id="resultTable">
-    <thead>
-      <tr>
-        <th>ItemName</th>
-        <th>Gold</th>
-        <th>Dia</th>
-        <th>Gold&Dia</th>
-        <th>出現率(%)</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<script>
+const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  <script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const imgBase = "https://raw.githubusercontent.com/MenboLD/LD_Field/main/";
+const items = [
+  { name: "Unit", img: imgBase+"icon_01_unit.png" },
+  { name: "Key", img: imgBase+"icon_02_free.png" },
+  { name: "Artifact", img: imgBase+"icon_03_artifacts.png" },
+  { name: "Scroll_30", img: imgBase+"icon_03_scroll_30.png" },
+  { name: "Scroll_100", img: imgBase+"icon_04_scroll_100.png" },
+  { name: "Scroll_300", img: imgBase+"icon_05_scroll_300.png" },
+  { name: "Mythstone", img: imgBase+"icon_06_Mythstone.png" },
+  { name: "Chur", img: imgBase+"icon_07_chur.png" },
+  { name: "Battery", img: imgBase+"icon_08_pet_draw.png" },
+  { name: "Petfood", img: imgBase+"icon_09_pet_upgrade.png" }
+];
 
-    // 🔧 Supabase設定（ここをあなたの値に書き換える）
-    const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
-    const supabase = createClient(supabaseUrl, supabaseKey);
+async function aggregate(){
+  const userFilter = document.getElementById("usernameInput").value.trim();
+  document.getElementById("status").innerText = "集計中...";
+  document.getElementById("resultTable").innerHTML = "";
+  document.getElementById("blockCount").innerText = "";
 
-    const ITEM_LIST = [
-      "Unit", "Key", "Artifact", "Scroll_30",
-      "Scroll_100", "Scroll_300", "Mythstone",
-      "Chur", "Battery", "Petfood"
-    ];
+  let query = supabase.from("logs").select("username, block_a, block_b, block_c, block_d, block_e, block_f");
+  if(userFilter) query = query.eq("username", userFilter);
+  const { data, error } = await query;
 
-    const tbody = document.querySelector("#resultTable tbody");
-    const fetchBtn = document.getElementById("fetchBtn");
-    const usernameInput = document.getElementById("username");
+  if(error){
+    document.getElementById("status").innerText = "エラー：" + error.message;
+    return;
+  }
+  if(!data || data.length === 0){
+    document.getElementById("status").innerText = "該当データなし";
+    return;
+  }
 
-    async function loadData(username = "") {
-      tbody.innerHTML = "<tr><td colspan='5'>読み込み中...</td></tr>";
+  document.getElementById("status").innerText = "完了";
 
-      let query = supabase.from("pitchshiftLogFile").select("username, items");
-      if (username.trim()) query = query.eq("username", username.trim());
+  const stats = {};
+  items.forEach(it => stats[it.name] = { gold:0, dia:0 });
 
-      const { data, error } = await query;
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="5">エラー: ${error.message}</td></tr>`;
-        return;
+  let validBlocks = 0;
+
+  for(const row of data){
+    const blocks = [row.block_a, row.block_b, row.block_c, row.block_d, row.block_e, row.block_f];
+    for(const block of blocks){
+      if(!block) continue;
+      let itemsInBlock = block;
+      if(typeof itemsInBlock === "string"){
+        try { itemsInBlock = JSON.parse(itemsInBlock); } catch(e){ continue; }
       }
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5">該当データなし</td></tr>`;
-        return;
+      const allNone = Object.values(itemsInBlock).every(v => v.src === "NoneItem");
+      if(allNone) continue;
+      validBlocks++;
+
+      for(const key in itemsInBlock){
+        const it = itemsInBlock[key];
+        if(!it || it.src === "NoneItem") continue;
+        if(!stats[it.src]) continue;
+        if(it.type === "gold") stats[it.src].gold++;
+        else if(it.type === "diamond") stats[it.src].dia++;
       }
-
-      const count = {};
-      ITEM_LIST.forEach(n => count[n] = { gold: 0, dia: 0 });
-
-      for (const row of data) {
-        let items = row.items;
-        if (typeof items === "string") {
-          try { items = JSON.parse(items); } catch { continue; }
-        }
-        if (!items || typeof items !== "object") continue;
-
-        const values = Object.values(items);
-        if (values.some(v => !v || v.src === "NoneItem")) continue;
-
-        for (const i of values) {
-          if (!i || !i.src) continue;
-          const name = ITEM_LIST.find(n => n === i.src);
-          if (!name) continue;
-
-          // カウントルール
-          if (i.type === "gold") count[name].gold++;
-          else if (i.type === "diamond") count[name].dia++;
-        }
-      }
-
-      const totalGold = Object.values(count).reduce((a, b) => a + b.gold, 0);
-      const totalDia = Object.values(count).reduce((a, b) => a + b.dia, 0);
-      const totalAll = totalGold + totalDia;
-
-      tbody.innerHTML = "";
-      ITEM_LIST.forEach(name => {
-        const gold = count[name].gold;
-        const dia = count[name].dia;
-        const both = gold + dia;
-        const rate = totalAll > 0 ? ((both / totalAll) * 100).toFixed(2) : "0.00";
-        tbody.innerHTML += `
-          <tr>
-            <td>${name}</td>
-            <td>${gold}</td>
-            <td>${dia}</td>
-            <td>${both}</td>
-            <td>${rate}</td>
-          </tr>
-        `;
-      });
-      tbody.innerHTML += `
-        <tr>
-          <td>合計</td>
-          <td>${totalGold}</td>
-          <td>${totalDia}</td>
-          <td>${totalAll}</td>
-          <td>100.00</td>
-        </tr>
-      `;
     }
+  }
 
-    fetchBtn.addEventListener("click", () => loadData(usernameInput.value));
-    loadData(); // 初期表示は全体集計
-  </script>
+  // テーブル作成
+  const table = document.getElementById("resultTable");
+  let html = `
+    <thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th><th>%</th></tr></thead>
+    <tbody>
+  `;
+
+  let totalGold=0, totalDia=0, totalBoth=0;
+  for(const it of items){
+    const g = stats[it.name].gold;
+    const d = stats[it.name].dia;
+    const both = g + d;
+    totalGold += g; totalDia += d; totalBoth += both;
+    const pct = validBlocks > 0 ? ((both / validBlocks) * 100).toFixed(2) : "0.00";
+    html += `
+      <tr>
+        <td><img src="${it.img}" alt="${it.name}"></td>
+        <td>${g}</td>
+        <td>${d}</td>
+        <td>${both}</td>
+        <td>${pct}%</td>
+      </tr>
+    `;
+  }
+
+  html += `
+    </tbody>
+    <tfoot>
+      <tr><td>合計</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>-</td></tr>
+    </tfoot>
+  `;
+  table.innerHTML = html;
+
+  document.getElementById("blockCount").innerText = `Total number of blocks: ${validBlocks}`;
+}
+</script>
 </body>
 </html>
