@@ -86,10 +86,9 @@ tr.total-row{background:#202226;font-weight:700;}
 </div>
 
 <script>
-    // 🔧 Supabase設定（ここをあなたの値に書き換える）
-    const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
-    const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const itemOrder = [
   {name:"ユニット", src:"Unit"},
@@ -113,7 +112,8 @@ async function loadData(){
   statusEl.textContent="集計中...";
   table.style.display="none";
 
-  let query = supabase.from("logs").select("username, items");
+  // Supabaseから logs テーブルの username, block_a を取得
+  let query = supabase.from("logs").select("username, block_a");
   if(userFilter) query = query.eq("username", userFilter);
   const { data, error } = await query;
 
@@ -126,9 +126,16 @@ async function loadData(){
   }
 
   for(const row of data){
-    const items = row.items;
-    if(!items || Object.keys(items).length===0) continue;
+    let items = row.block_a;
+    if(!items) continue;
 
+    // JSON文字列で保存されている場合を考慮
+    if(typeof items === "string"){
+      try { items = JSON.parse(items); }
+      catch(e){ console.warn("JSON parse error:", e); continue; }
+    }
+
+    // NoneItemブロック判定
     const allNone = Object.values(items).every(v=>v.src==="NoneItem");
     if(allNone) continue;
 
@@ -136,12 +143,12 @@ async function loadData(){
     const localCount={};
 
     for(const key in items){
-      const it=items[key];
+      const it = items[key];
       if(!it || it.src==="NoneItem") continue;
       if(!stats[it.src]) continue;
 
-      const t=it.type;
-      localCount[it.src]=(localCount[it.src]||{gold:0,dia:0});
+      const t = it.type;
+      localCount[it.src] = localCount[it.src] || {gold:0, dia:0};
       if(t==="gold"){ localCount[it.src].gold++; goldFlag=true; }
       else if(t==="diamond"){ localCount[it.src].dia++; diaFlag=true; }
     }
