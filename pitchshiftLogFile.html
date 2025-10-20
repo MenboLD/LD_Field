@@ -3,16 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pitchshift Log Uploader (ver1.02)</title>
+<title>Pitchshift Log Uploader (ver1.03)</title>
 <style>
   body {
     font-family: sans-serif;
     background: #f4f6f8;
     padding: 1rem;
   }
-  h1 {
-    text-align: center;
-  }
+  h1 { text-align: center; }
   .block {
     display: flex;
     justify-content: center;
@@ -62,7 +60,6 @@
   <h1>Pitchshift Log Uploader</h1>
   <input type="text" id="username" placeholder="ユーザー名（任意）">
 
-  <!-- ブロック構造 -->
   <div id="blocks">
     <div class="block" data-block="A"></div>
     <div class="block" data-block="B"></div>
@@ -77,9 +74,6 @@
   </div>
 
   <script type="module">
-    // ========================
-    // Supabase 初期化
-    // ========================
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
     const supabaseUrl = "https://<YOUR_PROJECT>.supabase.co";
@@ -87,7 +81,23 @@
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // ========================
-    // スロット構造（例）
+    // アイコンURL→短縮名マップ
+    // ========================
+    const iconMap = {
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png": "Unit",
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png": "Key",
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png": "Artifact",
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png": "Scroll_30",
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png": "Scroll_100",
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png": "Scroll_300",
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png": "Mythstone",
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_07_chur.png": "Chur",
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_pet_draw.png": "Battery",
+      "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_upgrade.png": "Petfood"
+    };
+
+    // ========================
+    // スロット構築
     // ========================
     const slots = { A: {}, B: {}, C: {}, D: {}, E: {}, F: {} };
     document.querySelectorAll('.block').forEach(block => {
@@ -102,43 +112,53 @@
     });
 
     // ========================
-    // 自動修正（sanitize）処理
+    // 自動修正（sanitize）
     // ========================
     function sanitizeBlocks(blocks) {
       const sanitized = {};
       const isBlank = v => !v || v === "NoneItem";
 
       for (const [blockKey, block] of Object.entries(blocks)) {
-        const items = Object.values(block).map(v => (v && v.src ? v.src : null)).filter(Boolean);
+        // URL → 短縮名変換
+        const blockConverted = {};
+        for (const [slotKey, slot] of Object.entries(block)) {
+          if (slot && slot.src) {
+            blockConverted[slotKey] = { src: iconMap[slot.src] || "NoneItem" };
+          } else {
+            blockConverted[slotKey] = { src: "NoneItem" };
+          }
+        }
 
-        // 1〜4個の入力 ⇒ 全消去
+        const items = Object.values(blockConverted).map(v => v.src).filter(src => src !== "NoneItem");
+
+        // (b) 1〜4個の入力 ⇒ 全消去
         if (items.length > 0 && items.length < 5) {
           sanitized[blockKey] = {};
           continue;
         }
 
-        // 同価格・同種アイテムの重複チェック
+        // 同種アイテム重複チェック
         const count = {};
         items.forEach(src => count[src] = (count[src] || 0) + 1);
         const duplicates = Object.entries(count).filter(([_, c]) => c >= 2);
 
         if (duplicates.length === 0) {
-          sanitized[blockKey] = block;
+          sanitized[blockKey] = blockConverted;
           continue;
         }
 
+        // (a-2) 3つ以上 ⇒ 全消去
         if (duplicates.some(([_, c]) => c >= 3)) {
-          sanitized[blockKey] = {}; // 3つ以上 ⇒ 全消去
+          sanitized[blockKey] = {};
           continue;
         }
 
-        // ちょうど2つ ⇒ 一方をゴールド・もう一方をダイヤ扱いに分離（仮想）
-        sanitized[blockKey] = structuredClone(block);
+        // (a-1) ちょうど2つ ⇒ ゴールド・ダイヤ仮想分離
+        sanitized[blockKey] = structuredClone(blockConverted);
         let adjusted = false;
         for (const [src, c] of duplicates) {
           if (c === 2 && !adjusted) {
             adjusted = true;
-            // ゴールドとダイヤ仮想的に分ける（例: src名に_suffix付加）
             let cnt = 0;
             for (const [key, v] of Object.entries(sanitized[blockKey])) {
               if (v && v.src === src) {
@@ -161,6 +181,8 @@
       let username = nameInput ? nameInput.value.trim() : '';
       if (!username) username = "NoneName";
 
+      const sanitized = sanitizeBlocks(slots);
+
       function normalizeBlock(blockArr) {
         const result = {};
         for (let i = 1; i <= 5; i++) {
@@ -170,22 +192,19 @@
         return result;
       }
 
-      // sanitize
-      const sanitized = sanitizeBlocks(slots);
-
       const payload = {
         username,
-        block_a: normalizeBlock(slots['A']),
-        block_b: normalizeBlock(slots['B']),
-        block_c: normalizeBlock(slots['C']),
-        block_d: normalizeBlock(slots['D']),
-        block_e: normalizeBlock(slots['E']),
-        block_f: normalizeBlock(slots['F']),
+        block_a: normalizeBlock(sanitized['A']),
+        block_b: normalizeBlock(sanitized['B']),
+        block_c: normalizeBlock(sanitized['C']),
+        block_d: normalizeBlock(sanitized['D']),
+        block_e: normalizeBlock(sanitized['E']),
+        block_f: normalizeBlock(sanitized['F']),
         created_at: new Date().toISOString()
       };
 
-      // 空ブロック（sanitizeで全消去された場合）は送信しない
-      if (Object.values(sanitized).every(b => Object.keys(b).length === 0)) {
+      // 全ブロック空 ⇒ 送信中止
+      if (Object.values(payload).every(v => typeof v === "object" && Object.values(v).every(x => x === "NoneItem"))) {
         alert("入力が不完全または無効なため送信できません。");
         return;
       }
@@ -198,9 +217,6 @@
       else alert("送信完了！");
     }
 
-    // ========================
-    // イベント登録
-    // ========================
     document.getElementById('sendBtn').addEventListener('click', sendDataToSupabase);
   </script>
 </body>
