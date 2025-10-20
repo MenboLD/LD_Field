@@ -79,15 +79,16 @@ tr.total-row{background:#202226;font-weight:700;}
   <div id="status" class="loading">読み込み待機中...</div>
   <table id="resultTable" style="display:none;">
     <thead>
-      <tr><th>ItemName</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th></tr>
+      <tr><th>ItemName</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th><th>%</th><th>Blocks</th></tr>
     </thead>
     <tbody></tbody>
   </table>
 </div>
 
 <script>
-const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+
+    const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const itemOrder = [
@@ -112,7 +113,6 @@ async function loadData(){
   statusEl.textContent="集計中...";
   table.style.display="none";
 
-  // Supabaseから logs テーブルの username, block_a を取得
   let query = supabase.from("logs").select("username, block_a");
   if(userFilter) query = query.eq("username", userFilter);
   const { data, error } = await query;
@@ -122,56 +122,64 @@ async function loadData(){
 
   const stats = {};
   for(const itemDef of itemOrder){
-    stats[itemDef.src] = {gold:0, dia:0, both:0};
+    stats[itemDef.src] = {gold:0, dia:0, both:0, blocks:0};
   }
+
+  let validBlocks = 0;
 
   for(const row of data){
     let items = row.block_a;
     if(!items) continue;
 
-    // JSON文字列で保存されている場合を考慮
     if(typeof items === "string"){
       try { items = JSON.parse(items); }
       catch(e){ console.warn("JSON parse error:", e); continue; }
     }
 
-    // NoneItemブロック判定
     const allNone = Object.values(items).every(v=>v.src==="NoneItem");
     if(allNone) continue;
+    validBlocks++;
 
-    let goldFlag=false, diaFlag=false;
-    const localCount={};
+    let goldSrc = new Set();
+    let diaSrc = new Set();
 
     for(const key in items){
       const it = items[key];
       if(!it || it.src==="NoneItem") continue;
       if(!stats[it.src]) continue;
 
-      const t = it.type;
-      localCount[it.src] = localCount[it.src] || {gold:0, dia:0};
-      if(t==="gold"){ localCount[it.src].gold++; goldFlag=true; }
-      else if(t==="diamond"){ localCount[it.src].dia++; diaFlag=true; }
+      if(it.type==="gold"){ stats[it.src].gold++; goldSrc.add(it.src); }
+      if(it.type==="diamond"){ stats[it.src].dia++; diaSrc.add(it.src); }
     }
 
-    for(const src in localCount){
-      if(localCount[src].gold>0) stats[src].gold += localCount[src].gold;
-      if(localCount[src].dia>0) stats[src].dia += localCount[src].dia;
-      if(goldFlag && diaFlag) stats[src].both++;
+    // 両方存在するsrcごとに both++ （Scroll_300 などが複数でも加算）
+    for(const src of goldSrc){
+      if(diaSrc.has(src)) stats[src].both++;
+    }
+
+    // 出現したsrcのブロック数を記録
+    const appeared = new Set([...goldSrc, ...diaSrc]);
+    for(const src of appeared){
+      stats[src].blocks++;
     }
   }
 
-  let total={gold:0,dia:0,both:0};
+  const total={gold:0,dia:0,both:0};
+  const tbodyFrag = document.createDocumentFragment();
   for(const itemDef of itemOrder){
     const s = stats[itemDef.src];
+    const percent = (validBlocks>0) ? ((s.gold+s.dia)/(validBlocks*5)*100).toFixed(2)+"%" : "0.00%";
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${itemDef.name}</td><td>${s.gold}</td><td>${s.dia}</td><td>${s.both}</td>`;
-    tbody.appendChild(tr);
+    tr.innerHTML=`<td>${itemDef.name}</td><td>${s.gold}</td><td>${s.dia}</td><td>${s.both}</td><td>${percent}</td><td>${s.blocks}</td>`;
+    tbodyFrag.appendChild(tr);
     total.gold+=s.gold; total.dia+=s.dia; total.both+=s.both;
   }
+  tbody.appendChild(tbodyFrag);
 
   const totalRow=document.createElement("tr");
   totalRow.classList.add("total-row");
-  totalRow.innerHTML=`<td>合計</td><td>${total.gold}</td><td>${total.dia}</td><td>${total.both}</td>`;
+  const totalPercent = (validBlocks>0) ? (((total.gold+total.dia)/(validBlocks*5)*100).toFixed(2)+"%") : "0.00%";
+  totalRow.innerHTML=`<td>合計</td><td>${total.gold}</td><td>${total.dia}</td><td>${total.both}</td><td>${totalPercent}</td><td>${validBlocks}</td>`;
   tbody.appendChild(totalRow);
 
   statusEl.textContent="完了";
