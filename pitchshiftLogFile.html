@@ -139,6 +139,17 @@ body{
 @media (max-width:360px){
   :root{ --cell-size:36px; --prod-size:48px; --block-gap:6px; }
 }
+.footer-img {
+  text-align: center;     /* 中央寄せ */
+  margin-top: 20px;       /* 上に少し余白 */
+}
+
+.footer-img img {
+  width: 300px;           /* 横幅300pxに固定 */
+  height: auto;           /* アスペクト比を保つ */
+  display: inline-block;  /* 中央寄せを有効にする */
+}
+
 </style>
 </head>
 <body>
@@ -356,4 +367,5 @@ async function sendDataToSupabase(){
 </script>
 </body>
 </html>
+
 
