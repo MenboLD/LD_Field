@@ -173,14 +173,43 @@ body{
     <a href="https://menbold.github.io/LD_Field/aggregate.html" target="_blank" style="color:#4cc9ff;text-decoration:none;font-weight:bold;">View aggregate results</a>
   </div>
 
+ <!-- About sections -->
   <div class="about-section">
-    <div class="about-title" id="aboutToggle">About this page ▼</div>
-    <div class="about-content" id="aboutContent">
+    <div class="about-title" data-target="about-en">About this page ▼</div>
+    <div class="about-content" id="about-en">
       Because the appearance rates of resources in the Daily Shop are unknown, this page allows you to input and submit your actual shop lineups so we can analyze and display them collectively.<br>
       If you already know the internal logic or appearance patterns, please contact me at <b>menbo.luckyd@gmail.com</b>.<br><br>
       By entering your username, you can also use this page to keep a personal record of your submissions.<br>
       Ultimately, I hope to use this data to estimate how quickly new players can grow in strength based on their play frequency.
     </div>
+
+    <div class="about-title" data-target="about-ko">이 페이지 정보 ▼</div>
+    <div class="about-content" id="about-ko">
+      데일리 상점에서 등장하는 자원의 출현 확률이 알려져 있지 않기 때문에, 실제 라인업을 입력하고 제출하여 이를 함께 분석하고 표시할 수 있도록 만들었습니다.<br>
+      만약 이미 내부 로직이나 등장 패턴을 알고 계신다면, <b>menbo.luckyd@gmail.com</b> 으로 연락해 주세요.<br><br>
+      사용자 이름을 입력하면 개인 기록용으로도 활용할 수 있습니다.<br>
+      궁극적으로는 플레이 빈도에 따라 신규 플레이어가 얼마나 빨리 성장할 수 있는지를 추정하는 자료로 활용하고자 합니다.
+    </div>
+
+    <div class="about-title" data-target="about-zh">关于此页面 ▼</div>
+    <div class="about-content" id="about-zh">
+      由于每日商店中资源的出现概率未知，本页面允许您输入并提交实际的商店阵容，以便我们共同分析并显示结果。<br>
+      如果您已经了解内部逻辑或出现规律，请联系我：<b>menbo.luckyd@gmail.com</b>。<br><br>
+      输入用户名后，您也可以将此页面用作个人记录工具。<br>
+      最终，我希望通过这些数据来估算新玩家根据游戏频率提升实力的速度。
+    </div>
+
+    <div class="about-title" data-target="about-jp">このページについて ▼</div>
+    <div class="about-content" id="about-jp">
+      デイリーショップに並ぶリソースの出現率が分からないため、実際のラインナップを入力・送信して、それらを集計・分析できるようにしました。<br>
+      もし出現の仕組みをご存じの方がいましたら、<b>menbo.luckyd@gmail.com</b>までご一報ください。<br><br>
+      ユーザー名を入力しておけば、自分の記録としても利用可能です。<br>
+      最終的には、プレイ頻度に応じて新規プレイヤーがどれくらいの期間で成長できるかを示す資料にしたいと考えています。
+    </div>
+  </div>
+
+  <div class="footer-img">
+    <img src="https://menbold.github.io/LD_Field/madeinme.png" alt="made by me">
   </div>
 </div>
 
@@ -327,3 +356,4 @@ async function sendDataToSupabase(){
 </script>
 </body>
 </html>
+
