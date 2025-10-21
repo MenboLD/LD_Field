@@ -6,92 +6,21 @@
 <title>Lucky Defense - Aggregated Data</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root {
-  --bg: #0f1113;
-  --panel: #131417;
-  --accent: #ffce00;
-  --icon-size: 28px;
-}
-body {
-  font-family: "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  padding: 18px 0;
-}
-.viewport {
-  width: min(92vw, 450px);
-  margin: 0 auto;
-  box-sizing: border-box;
-  padding: 0 4vw;
-}
-input {
-  width: 100%;
-  border-radius: 10px;
-  border: 1px solid #444;
-  background: #1a1c1f;
-  color: #fff;
-  padding: 10px;
-  font-size: 14px;
-  box-sizing: border-box;
-  margin-bottom: 8px;
-}
-button {
-  width: 100%;
-  background: linear-gradient(180deg, #ffce00, #d4a000);
-  border-radius: 10px;
-  padding: 10px;
-  font-weight: 700;
-  color: #111;
-  border: 0;
-  box-shadow: 0 4px #b38a00;
-  cursor: pointer;
-  transition: transform 0.08s, box-shadow 0.08s;
-}
-button:active {
-  transform: translateY(3px);
-  box-shadow: 0 2px #b38a00;
-}
-.panel {
-  background: var(--panel);
-  padding: 10px;
-  border-radius: 10px;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 8px;
-  font-size: 14px;
-}
-th, td {
-  text-align: center;
-  padding: 8px;
-  border-bottom: 1px solid #333;
-}
-th {
-  color: var(--accent);
-  background: #151617;
-}
-td img {
-  width: var(--icon-size);
-  height: var(--icon-size);
-  object-fit: contain;
-  display: block;
-  margin: 0 auto;
-}
-tfoot td {
-  font-weight: bold;
-  border-top: 1px solid #555;
-}
-.footer-note {
-  text-align: right;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #ccc;
-}
-.loading { color: #aaa; margin: 6px 0; }
-.small { color: #ccc; font-size: 13px; }
+:root { --bg:#0f1113; --panel:#131417; --accent:#ffce00; --icon-size:28px; }
+body { font-family:"Segoe UI",Roboto,sans-serif; background:var(--bg); color:#fff; display:flex; justify-content:center; padding:18px 0; }
+.viewport { width:min(92vw,450px); margin:0 auto; box-sizing:border-box; padding:0 4vw; }
+input { width:100%; border-radius:10px; border:1px solid #444; background:#1a1c1f; color:#fff; padding:10px; font-size:14px; box-sizing:border-box; margin-bottom:8px; }
+button { width:100%; background:linear-gradient(180deg,#ffce00,#d4a000); border-radius:10px; padding:10px; font-weight:700; color:#111; border:0; box-shadow:0 4px #b38a00; cursor:pointer; transition: transform .08s, box-shadow .08s; }
+button:active { transform:translateY(3px); box-shadow:0 2px #b38a00; }
+.panel { background:var(--panel); padding:10px; border-radius:10px; }
+table { width:100%; border-collapse:collapse; margin-top:8px; font-size:14px; }
+th, td { text-align:center; padding:8px; border-bottom:1px solid #333; }
+th { color:var(--accent); background:#151617; }
+td img { width:var(--icon-size); height:var(--icon-size); object-fit:contain; display:block; margin:0 auto; }
+tfoot td { font-weight:bold; border-top:1px solid #555; }
+.footer-note { text-align:right; margin-top:8px; font-size:13px; color:#ccc; }
+.loading { color:#aaa; margin:6px 0; }
+.small { color:#ccc; font-size:13px; }
 </style>
 </head>
 <body>
@@ -158,29 +87,40 @@ async function aggregate(){
       const parsed = parseMaybeJson(row[field]);
       if(!parsed) continue;
 
-      // JSONが数値キーオブジェクトの場合に対応
-      const block = Array.isArray(parsed) ? parsed : Object.values(parsed);
+      const block = Object.values(parsed);
       if(block.length !== 5) continue;
 
-      // すべてのスロットが有効な場合のみ
-      const isValid = block.every(slot => slot && slot.src && !["noitem", "nll", "NoneItem"].includes(slot.src));
+      // ブロックが全スロット有効か確認
+      const isValid = block.every(slot => slot && slot.src && !["noitem","nll","NoneItem"].includes(slot.src));
       if(!isValid) continue;
 
       validBlocks++;
 
-      for(const slot of block){
-        if(!slot || !slot.src) continue;
+      // ブロック内重複カウント管理（非ユニットのみ）
+      const counted = {};
 
-        // src正規化
+      for(const slot of block){
+        if(!slot || !slot.src || ["noitem","nll","NoneItem"].includes(slot.src)) continue;
+
         let src = slot.src.replace(/^icon_\d+_/, "");
         src = src.charAt(0).toUpperCase() + src.slice(1);
-
         const type = slot.type;
         if(!stats[src]) continue;
 
-        totalItemCount++;
-        if(type === "gold") stats[src].gold++;
-        if(type === "diamond" || type === "dia") stats[src].dia++;
+        if(src === "Unit"){
+          // ユニットはブロック内で重複OK
+          if(type === "gold") stats[src].gold++;
+          if(type === "diamond" || type === "dia") stats[src].dia++;
+          totalItemCount++;
+        } else {
+          // 他アイテムは1ブロック内で1回のみ
+          if(!counted[src]){
+            if(type === "gold") stats[src].gold++;
+            if(type === "diamond" || type === "dia") stats[src].dia++;
+            totalItemCount++;
+            counted[src] = true;
+          }
+        }
       }
     }
   }
