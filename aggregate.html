@@ -108,10 +108,10 @@ tfoot td {
 <script>
 /* Supabase config */
 const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA"; // 実際のanon keyに差し替え
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-/* Item icons */
+/* Item icons and keys */
 const imgBase = "https://raw.githubusercontent.com/MenboLD/LD_Field/main/";
 const items = [
   { key: "Unit", img: imgBase + "icon_01_unit.png" },
@@ -125,6 +125,23 @@ const items = [
   { key: "Battery", img: imgBase + "icon_08_pet_draw.png" },
   { key: "Petfood", img: imgBase + "icon_09_pet_upgrade.png" }
 ];
+
+/* helper to convert src filename to key */
+function srcToKey(src) {
+  switch(src) {
+    case "icon_01_unit.png": return "Unit";
+    case "icon_02_free.png": return "Key";
+    case "icon_03_artifacts.png": return "Artifact";
+    case "icon_03_scroll_30.png": return "Scroll_30";
+    case "icon_04_scroll_100.png": return "Scroll_100";
+    case "icon_05_scroll_300.png": return "Scroll_300";
+    case "icon_06_Mythstone.png": return "Mythstone";
+    case "icon_07_chur.png": return "Chur";
+    case "icon_08_pet_draw.png": return "Battery";
+    case "icon_09_pet_upgrade.png": return "Petfood";
+    default: return null;
+  }
+}
 
 function parseMaybeJson(v) {
   if (!v) return null;
@@ -159,6 +176,7 @@ async function aggregate() {
     return;
   }
 
+  // initialize stats
   const stats = {};
   items.forEach(it => stats[it.key] = { gold: 0, dia: 0 });
   let validBlocks = 0;
@@ -181,19 +199,21 @@ async function aggregate() {
       const seenDia = new Set();
 
       values.forEach(slot => {
-        const src = slot.src;
-        const type = slot.type;
-        if (!stats[src]) return;
+        if (!slot || slot.src === "NoneItem") return;
+
+        const filename = slot.src.split("/").pop();
+        const key = srcToKey(filename);
+        if (!key) return;
 
         totalItemCount++; // NoneItem以外の総数カウント
 
-        if (type === "gold" && !seenGold.has(src)) {
-          stats[src].gold++;
-          seenGold.add(src);
+        if (slot.type === "gold" && !seenGold.has(key)) {
+          stats[key].gold++;
+          seenGold.add(key);
         }
-        if ((type === "diamond" || type === "dia") && !seenDia.has(src)) {
-          stats[src].dia++;
-          seenDia.add(src);
+        if ((slot.type === "diamond" || slot.type === "dia") && !seenDia.has(key)) {
+          stats[key].dia++;
+          seenDia.add(key);
         }
       });
     });
@@ -201,29 +221,28 @@ async function aggregate() {
 
   // build table
   let html = "<thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th><th>%</th></tr></thead><tbody>";
-  let totalGold = 0, totalDia = 0, totalBoth = 0;
-
   items.forEach(it => {
     const g = stats[it.key].gold;
     const d = stats[it.key].dia;
     const both = g + d;
-    totalGold += g; totalDia += d; totalBoth += both;
 
     const goldCell = `${g} <span class='small'>(${(g / totalItemCount * 100).toFixed(2)}%)</span>`;
     const diaCell  = `${d} <span class='small'>(${(d / totalItemCount * 100).toFixed(2)}%)</span>`;
     const bothCell = `${both}`;
     const pctCell  = ((both / totalItemCount * 100).toFixed(2)) + "%";
 
-    html += `
-      <tr>
-        <td><img src="${it.img}" alt="${it.key}"></td>
-        <td>${goldCell}</td>
-        <td>${diaCell}</td>
-        <td>${bothCell}</td>
-        <td>${pctCell}</td>
-      </tr>
-    `;
+    html += `<tr>
+      <td><img src="${it.img}" alt="${it.key}"></td>
+      <td>${goldCell}</td>
+      <td>${diaCell}</td>
+      <td>${bothCell}</td>
+      <td>${pctCell}</td>
+    </tr>`;
   });
+
+  const totalGold = items.reduce((sum,it)=>sum+stats[it.key].gold,0);
+  const totalDia  = items.reduce((sum,it)=>sum+stats[it.key].dia,0);
+  const totalBoth = totalGold + totalDia;
 
   html += `<tfoot><tr><td>Total</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>100%</td></tr></tfoot>`;
   table.innerHTML = html;
