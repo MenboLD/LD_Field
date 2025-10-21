@@ -317,22 +317,43 @@ const SUPABASE_URL="https://cxgbloauhimuhdjlvwvh.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
 const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
+/* mapping for sending to DB */
+const ITEM_NAME_MAP = {
+  "icon_01_unit": "Unit",
+  "icon_02_free": "Free",
+  "icon_03_artifacts": "Artifact",
+  "icon_03_scroll_30": "Scroll_30",
+  "icon_04_scroll_100": "Scroll_100",
+  "icon_05_scroll_300": "Scroll_300",
+  "icon_06_Mythstone": "Mythstone",
+  "icon_07_chur": "Chur",
+  "icon_08_pet_draw": "PetDraw",
+  "icon_09_pet_upgrade": "PetUpgrade"
+};
+
 async function sendDataToSupabase(){
   const name=document.getElementById('username').value.trim()||"NoneName";
   const payload={username:name};
+
   blocks.forEach(b=>{
     const block={};
     for(let i=2;i<=6;i++){
       const s=slots[b][i];
-      block[i-1]=s?{src:s.src.split("/").pop().replace(".png",""),type:s.type}:"NoneItem";
+      if(s){
+        const fileKey = s.src.split("/").pop().replace(".png","");
+        const nameKey = ITEM_NAME_MAP[fileKey] || fileKey;
+        block[i-1] = {src: nameKey, type: s.type};
+      } else {
+        block[i-1] = "NoneItem";
+      }
     }
-    payload[`block_${b.toLowerCase()}`]=block;
+    payload[`block_${b.toLowerCase()}`] = block;
   });
-  const {error}=await supabase.from("logs").insert([payload]);
+
+  const {error} = await supabase.from("logs").insert([payload]);
   if(error) alert("Error: "+error.message);
   else alert("Upload completed!");
 }
 </script>
 </body>
 </html>
-
