@@ -36,7 +36,7 @@ tfoot td { font-weight:bold; border-top:1px solid #555; }
 
 <script>
 const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+const supabaseKey = "YOUR_SUPABASE_KEY";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const imgBase = "https://raw.githubusercontent.com/MenboLD/LD_Field/main/";
@@ -72,41 +72,10 @@ function parseMaybeJson(v){
   try { return JSON.parse(v); } catch { return null; }
 }
 
-// 重複チェック関数
-function checkBlockDuplicates(block){
-  const typeMap = {};
-  let duplicateFound = false;
-
-  // まずアイテムごとに種類＋価格ごとの個数を集計
-  for(const slot of block){
-    if(!slot || !slot.src) continue;
-    const src = ITEM_NAME_MAP_REVERSE[slot.src] || slot.src;
-    const type = slot.type;
-    if(src === "Unit") continue; // Unit は無視
-    if(!typeMap[src]) typeMap[src] = {};
-    typeMap[src][type] = (typeMap[src][type] || 0) + 1;
-  }
-
-  // 緩和処理：同ブロック内に同種類がちょうど 2 個で重複している場合、片方の価格種類を変更
-  for(const src in typeMap){
-    const counts = Object.values(typeMap[src]);
-    if(counts.length === 2 && counts[0] === 1 && counts[1] === 1){
-      // 緩和条件により1個の価格を変更
-      const types = Object.keys(typeMap[src]);
-      // 変更: types[0] の方を反対に
-      typeMap[src][types[0]]--;
-      const oppositeType = types[0] === "gold" ? "diamond" : "gold";
-      typeMap[src][oppositeType] = (typeMap[src][oppositeType] || 0) + 1;
-    }
-  }
-
-  // 重複が残る場合はブロック無効
-  for(const src in typeMap){
-    for(const t in typeMap[src]){
-      if(typeMap[src][t] > 1) duplicateFound = true;
-    }
-  }
-  return !duplicateFound;
+// 判定: 同じアイテム・同じ価格で重複か
+function isDuplicate(slot, counted) {
+  const key = slot.src + '_' + slot.type;
+  return counted[key] ? true : false;
 }
 
 async function aggregate(){
@@ -140,31 +109,70 @@ async function aggregate(){
       const block = Object.values(parsed);
       if(block.length !== 5) continue;
 
-      const isValid = block.every(slot => slot && slot.src && !["noitem","nll","NoneItem"].includes(slot.src));
-      if(!isValid) continue;
-
-      // 重複チェック＋緩和条件適用
-      if(!checkBlockDuplicates(block)) continue;
-
-      validBlocks++;
+      // まず重複判定
       const counted = {};
+      const duplicateCheck = {};
+      let blockInvalid = false;
 
       for(const slot of block){
-        if(!slot || !slot.src) continue;
+        if(!slot || !slot.src || ["noitem","nll","NoneItem"].includes(slot.src)) continue;
+        const src = ITEM_NAME_MAP_REVERSE[slot.src] || slot.src;
+        if(src==="Unit") continue;
+
+        const keyPrice = src + '_' + slot.type;
+        duplicateCheck[keyPrice] = (duplicateCheck[keyPrice] || 0) + 1;
+      }
+
+      // 緩和条件: 価格関係なく2個だけ同じアイテムがある場合
+      const blockSlots = {};
+      for(const slot of block){
+        if(!slot || !slot.src || ["noitem","nll","NoneItem"].includes(slot.src)) continue;
+        const src = ITEM_NAME_MAP_REVERSE[slot.src] || slot.src;
+        if(src==="Unit") continue;
+
+        blockSlots[src] = (blockSlots[src] || []).concat(slot.type);
+      }
+
+      for(const [item, types] of Object.entries(blockSlots)){
+        // 2個だけのアイテムであれば1つの価格を変更
+        if(types.length===2){
+          if(types[0]===types[1]){
+            // 同じ価格種類なら片方を緩和
+            types[1] = types[1]==="gold"?"diamond":"gold";
+          }
+        }
+      }
+
+      // 再判定: 同じアイテム・同じ価格が2個以上ある場合は無効ブロック
+      for(const [item, types] of Object.entries(blockSlots)){
+        const counter = {};
+        types.forEach(t => counter[t] = (counter[t]||0)+1);
+        for(const t of Object.values(counter)){
+          if(t>1) blockInvalid=true;
+        }
+      }
+      if(blockInvalid) continue; // 無効ブロックはスキップ
+      validBlocks++;
+
+      // 集計
+      for(const slot of block){
+        if(!slot || !slot.src || ["noitem","nll","NoneItem"].includes(slot.src)) continue;
         const src = ITEM_NAME_MAP_REVERSE[slot.src] || slot.src;
         const type = slot.type;
         if(!stats[src]) continue;
 
-        if(src === "Unit"){
-          if(type === "gold") stats[src].gold++;
-          if(type === "diamond" || type === "dia") stats[src].dia++;
+        if(src==="Unit"){
+          if(type==="gold") stats[src].gold++;
+          else if(type==="diamond" || type==="dia") stats[src].dia++;
           totalItemCount++;
         } else {
-          if(!counted[src]){
-            if(type === "gold") stats[src].gold++;
-            if(type === "diamond" || type === "dia") stats[src].dia++;
+          // 重複チェック済み
+          const countedKey = src+'_'+type;
+          if(!counted[countedKey]){
+            if(type==="gold") stats[src].gold++;
+            else if(type==="diamond" || type==="dia") stats[src].dia++;
             totalItemCount++;
-            counted[src] = true;
+            counted[countedKey]=true;
           }
         }
       }
