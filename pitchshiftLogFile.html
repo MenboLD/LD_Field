@@ -225,39 +225,73 @@ const blocksContainer=document.getElementById("blocksContainer");
 const blockNames=['A','B','C','D','E','F'];
 let activeCell=null;
 
-function createBlocks(){
-  blocksContainer.innerHTML='';
-  blockNames.forEach(bname=>{
-    const block=document.createElement('div');
-    block.className='block';
-    const label=document.createElement('div');
-    label.className='label';
-    label.textContent=bname;
-    block.appendChild(label);
-    for(let i=0;i<6;i++){
-      const cell=document.createElement('div');
-      cell.className='cell';
-      cell.dataset.block=bname;
-      cell.dataset.index=i;
-      cell.addEventListener('click',()=>{ selectCell(cell); });
-      block.appendChild(cell);
-    }
-    blocksContainer.appendChild(block);
-  });
-}
-
 function selectCell(cell){
   if(activeCell) activeCell.classList.remove('editing');
   activeCell=cell;
   cell.classList.add('editing');
 }
 
+/* fill a cell with item */
 function fillCell(item,type){
   if(!activeCell) return;
   activeCell.innerHTML=`<img src="${item.img}" alt="${item.key}">`;
   activeCell.dataset.type=type;
   activeCell.dataset.src=item.key;
   activeCell.classList.remove('editing');
+}
+
+/* create blocks with optional existing data */
+function createBlocks(existingData=null){
+  blocksContainer.innerHTML='';
+
+  blockNames.forEach((bname,bidx)=>{
+    const block=document.createElement('div');
+    block.className='block';
+
+    const label=document.createElement('div');
+    label.className='label';
+    label.textContent=bname;
+    block.appendChild(label);
+
+    for(let i=0;i<6;i++){
+      const cell=document.createElement('div');
+
+      // 左上UNDOセル（Aブロックのみ）
+      if(bidx===0 && i===0){
+        cell.className='cell undo-cell';
+        cell.innerHTML='<img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="UNDO">';
+        cell.addEventListener('click',()=>{
+          if(activeCell){
+            activeCell.innerHTML='';
+            delete activeCell.dataset.src;
+            delete activeCell.dataset.type;
+          }
+        });
+      } else {
+        cell.className='cell';
+        cell.addEventListener('click',()=>selectCell(cell));
+
+        // 既存データがあれば復元
+        if(existingData && existingData[bname] && existingData[bname][i]){
+          const slot = existingData[bname][i];
+          if(slot.src!=='NoneItem'){
+            const item=ITEMS.find(it=>it.key===slot.src);
+            if(item){
+              cell.innerHTML=`<img src="${item.img}" alt="${item.key}">`;
+              cell.dataset.src=slot.src;
+              cell.dataset.type=slot.type;
+            }
+          }
+        }
+      }
+
+      cell.dataset.block=bname;
+      cell.dataset.index=i;
+      block.appendChild(cell);
+    }
+
+    blocksContainer.appendChild(block);
+  });
 }
 
 /* products */
@@ -274,36 +308,4 @@ function createProducts(){
     const dbtn=document.createElement('div'); dbtn.className='prod-item'; dbtn.title=it.key+' (Diamond)';
     dbtn.innerHTML=`<img src="${it.img}" alt="${it.key}">`;
     dbtn.addEventListener('click',()=>fillCell(it,'diamond'));
-    diaFrame.appendChild(dbtn);
-  });
-}
-
-document.getElementById('sendBtn').addEventListener('click',async()=>{
-  const username=document.getElementById('username').value.trim();
-  const blocksData={};
-  blockNames.forEach(bname=>{
-    const blockEl=document.querySelector(`.block .label:contains('${bname}')`)?.parentElement;
-    if(!blockEl) return;
-    const slots=[];
-    const cells=blockEl.querySelectorAll('.cell');
-    cells.forEach(c=>{
-      if(c.dataset.src){
-        slots.push({ src:c.dataset.src, type:c.dataset.type });
-      }else{
-        slots.push({ src:'NoneItem', type:'none' });
-      }
-    });
-    blocksData['block_'+bname.toLowerCase()]=slots;
-  });
-  const payload={ username, ...blocksData, created_at:new Date().toISOString() };
-  const { data, error } = await supabase.from('logs').insert([payload]);
-  if(error){ alert('Error: '+error.message); } else { alert('Sent!'); createBlocks(); }
-});
-
-document.getElementById('resetBtn').addEventListener('click',()=>createBlocks());
-
-createBlocks();
-createProducts();
-</script>
-</body>
-</html>
+    diaFrame.appendChild(dbtn
