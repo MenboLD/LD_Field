@@ -107,7 +107,7 @@ tfoot td {
 
 <script>
 const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA"; 
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const imgBase = "https://raw.githubusercontent.com/MenboLD/LD_Field/main/";
@@ -172,9 +172,10 @@ async function aggregate() {
       const parsed = parseMaybeJson(row[field]);
       if (!parsed) return;
       const values = Object.values(parsed);
-      if (values.length !== 5) return; // 空欄があるブロックは無視
-      const allNone = values.every(v => v && v.src === "NoneItem");
-      if (allNone) return;
+      if (values.length !== 5) return; // 空欄があるブロックはカウントしない
+
+      const hasNone = values.some(v => !v || v.src === "NoneItem");
+      if (hasNone) return;
 
       validBlocks++;
 
@@ -199,21 +200,24 @@ async function aggregate() {
     });
   });
 
+  // 出現率を totalBoth に基づく比率で計算
+  let totalBoth = 0;
+  items.forEach(it => { totalBoth += stats[it.key].gold + stats[it.key].dia; });
+
   // build table
   let html = "<thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th><th>%</th></tr></thead><tbody>";
-  let totalGold = 0, totalDia = 0, totalBoth = 0;
+  let totalGold = 0, totalDia = 0;
 
   items.forEach(it => {
     const g = stats[it.key].gold;
     const d = stats[it.key].dia;
     const both = g + d;
-    totalGold += g; totalDia += d; totalBoth += both;
+    totalGold += g; totalDia += d;
 
-    // 出現率を1/5に修正
-    const goldCell = `${g} <span class='small'>(${fmtPct(g / 5, validBlocks)})</span>`;
-    const diaCell  = `${d} <span class='small'>(${fmtPct(d / 5, validBlocks)})</span>`;
+    const goldCell = `${g} <span class='small'>(${fmtPct(g, validBlocks)})</span>`;
+    const diaCell  = `${d} <span class='small'>(${fmtPct(d, validBlocks)})</span>`;
     const bothCell = `${both}`;
-    const pctCell  = fmtPct(both / 5, validBlocks);
+    const pctCell  = fmtPct(both, totalBoth); // ← 修正点
 
     html += `
       <tr>
