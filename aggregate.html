@@ -174,31 +174,19 @@ async function aggregate() {
       const parsed = parseMaybeJson(row[field]);
       if (!parsed) return;
       const values = Object.values(parsed);
-      if (values.length === 0) return;
+      if (values.length !== 5) return; // 5スロットすべて埋まっていなければスキップ
+      const anyEmpty = values.some(v => !v || v.src === "NoneItem");
+      if (anyEmpty) return;
 
-      // 1つでも空欄（null または NoneItem）があるブロックはカウントしない
-      const hasEmpty = values.some(v => !v || v.src === "NoneItem");
-      if (hasEmpty) return;
+      validBlocks++;
 
-      validBlocks++; // 全てのスロットが埋まっているブロックのみカウント
-
-      const seenGold = new Set();
-      const seenDia = new Set();
-
+      // 各スロットの出現をそのままカウント
       values.forEach(slot => {
-        if (!slot || slot.src === "NoneItem") return;
         const src = slot.src;
         const type = slot.type;
         if (!stats[src]) return;
-
-        if (type === "gold" && !seenGold.has(src)) {
-          stats[src].gold++;
-          seenGold.add(src);
-        }
-        if ((type === "diamond" || type === "dia") && !seenDia.has(src)) {
-          stats[src].dia++;
-          seenDia.add(src);
-        }
+        if (type === "gold") stats[src].gold++;
+        if (type === "diamond" || type === "dia") stats[src].dia++;
       });
     });
   });
@@ -232,7 +220,6 @@ async function aggregate() {
   html += `</tbody><tfoot><tr><td>Total</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>-</td></tr></tfoot>`;
   table.innerHTML = html;
   table.style.display = "table";
- 
   blockCountEl.textContent = `Total number of blocks: ${validBlocks}`;
   statusEl.textContent = "Completed.";
 }
