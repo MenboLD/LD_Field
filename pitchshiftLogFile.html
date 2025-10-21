@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/> <!-- ダブルタップズーム防止 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>LD_DailyShop</title>
 <style>
 :root{
@@ -112,6 +112,26 @@ body{
 .box img{ width:72%; height:auto; display:block; }
 .hint{ font-size:12px; color:#aaa; text-align:center; margin-top:8px; }
 
+.about-section {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 13px;
+}
+.about-title {
+  color:#4cc9ff;
+  cursor:pointer;
+  font-weight:bold;
+  margin-top:12px;
+  text-decoration: underline;
+}
+.about-content {
+  display:none;
+  margin-top:6px;
+  color:#ccc;
+  line-height:1.6;
+  font-size:13px;
+}
+
 @media (max-width:420px){
   :root{ --cell-size:40px; --prod-size:52px; --block-gap:8px; }
   .viewport{ padding: 0 4vw; }
@@ -152,9 +172,30 @@ body{
     When you enter your username, you can later view only your data in the aggregate results.<br>
     <a href="https://menbold.github.io/LD_Field/aggregate.html" target="_blank" style="color:#4cc9ff;text-decoration:none;font-weight:bold;">View aggregate results</a>
   </div>
+
+  <div class="about-section">
+    <div class="about-title" id="aboutToggle">About this page ▼</div>
+    <div class="about-content" id="aboutContent">
+      Because the appearance rates of resources in the Daily Shop are unknown, this page allows you to input and submit your actual shop lineups so we can analyze and display them collectively.<br>
+      If you already know the internal logic or appearance patterns, please contact me at <b>menbo.luckyd@gmail.com</b>.<br><br>
+      By entering your username, you can also use this page to keep a personal record of your submissions.<br>
+      Ultimately, I hope to use this data to estimate how quickly new players can grow in strength based on their play frequency.
+    </div>
+  </div>
 </div>
 
 <script>
+/* toggle about section */
+document.addEventListener('DOMContentLoaded',()=>{
+  const toggle=document.getElementById('aboutToggle');
+  const content=document.getElementById('aboutContent');
+  toggle.addEventListener('click',()=>{
+    const visible=content.style.display==='block';
+    content.style.display=visible?'none':'block';
+    toggle.textContent=visible?'About this page ▼':'About this page ▲';
+  });
+});
+
 /* prevent double-tap zoom */
 document.addEventListener('touchend', (e) => {
   const now = Date.now();
