@@ -55,7 +55,9 @@ body{
   grid-template-rows: repeat(2, var(--cell-size));
   gap: var(--grid-gap);
   justify-content:center;
+  transition: box-shadow .2s, outline .2s;
 }
+.block.highlight { box-shadow: 0 0 8px 3px #4cc9ff; outline: 2px solid #4cc9ff; }
 .block .label { position:absolute; top:6px; left:8px; font-size:12px; color:var(--muted); }
 
 .cell {
@@ -183,68 +185,13 @@ body{
     <a href="https://menbold.github.io/LD_Field/aggregate.html" target="_blank" style="color:#4cc9ff;text-decoration:none;font-weight:bold;">View aggregate results</a>
   </div>
 
-  <!-- About sections -->
-  <div class="about-section">
-    <div class="about-title" data-target="about-en">About this page ▼</div>
-    <div class="about-content" id="about-en">
-      Because the appearance rates of resources in the Daily Shop are unknown, this page allows you to input and submit your actual shop lineups so we can analyze and display them collectively.<br>
-      If you already know the internal logic or appearance patterns, please contact me at <b>menbo.luckyd@gmail.com</b>.<br><br>
-      By entering your username, you can also use this page to keep a personal record of your submissions.<br>
-      Ultimately, I hope to use this data to estimate how quickly new players can grow in strength based on their play frequency.
-    </div>
-
-    <div class="about-title" data-target="about-ko">이 페이지 정보 ▼</div>
-    <div class="about-content" id="about-ko">
-      데일리 상점에서 등장하는 자원의 출현 확률이 알려져 있지 않기 때문에, 실제 라인업을 입력하고 제출하여 이를 함께 분석하고 표시할 수 있도록 만들었습니다.<br>
-      만약 이미 내부 로직이나 등장 패턴을 알고 계신다면, <b>menbo.luckyd@gmail.com</b> 으로 연락해 주세요.<br><br>
-      사용자 이름을 입력하면 개인 기록용으로도 활용할 수 있습니다.<br>
-      궁극적으로는 플레이 빈도에 따라 신규 플레이어가 얼마나 빨리 성장할 수 있는지를 추정하는 자료로 활용하고자 합니다.
-    </div>
-
-    <div class="about-title" data-target="about-zh">关于此页面 ▼</div>
-    <div class="about-content" id="about-zh">
-      由于每日商店中资源的出现概率未知，本页面允许您输入并提交实际的商店阵容，以便我们共同分析并显示结果。<br>
-      如果您已经了解内部逻辑或出现规律，请联系我：<b>menbo.luckyd@gmail.com</b>。<br><br>
-      输入用户名后，您也可以将此页面用作个人记录工具。<br>
-      最终，我希望通过这些数据来估算新玩家根据游戏频率提升实力的速度。
-    </div>
-
-    <div class="about-title" data-target="about-jp">このページについて ▼</div>
-    <div class="about-content" id="about-jp">
-      デイリーショップに並ぶリソースの出現率が分からないため、実際のラインナップを入力・送信して、それらを集計・分析できるようにしました。<br>
-      もし出現の仕組みをご存じの方がいましたら、<b>menbo.luckyd@gmail.com</b>までご一報ください。<br><br>
-      ユーザー名を入力しておけば、自分の記録としても利用可能です。<br>
-      最終的には、プレイ頻度に応じて新規プレイヤーがどれくらいの期間で成長できるかを示す資料にしたいと考えています。
-    </div>
-  </div>
-
   <div class="footer-img">
     <img src="https://menbold.github.io/LD_Field/madeinme.png" alt="made by me">
   </div>
-
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* toggle sections */
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.about-title').forEach(t=>{
-    t.addEventListener('click',()=>{
-      const id=t.dataset.target;
-      const el=document.getElementById(id);
-      const visible=el.style.display==='block';
-      el.style.display=visible?'none':'block';
-      t.textContent=t.textContent.replace(visible?'▲':'▼',visible?'▼':'▲');
-    });
-  });
-});
-
-/* prevent double-tap zoom */
-document.addEventListener('touchend', (e) => {
-  const now = Date.now();
-  if (document.lastTouch && now - document.lastTouch < 300) e.preventDefault();
-  document.lastTouch = now;
-}, false);
-
 /* blocks initialization */
 const blocks = ['A','B','C','D','E','F'];
 const slots = {};
@@ -271,7 +218,7 @@ blocks.forEach(b=>{
   blockContainer.appendChild(block);
 });
 
-/* define gold/dia products */
+/* products */
 const items=[
   "icon_01_unit.png","icon_02_free.png","icon_03_artifacts.png",
   "icon_03_scroll_30.png","icon_04_scroll_100.png","icon_05_scroll_300.png",
@@ -280,7 +227,7 @@ const items=[
 function buildProducts(frameId,type){
   const frame=document.getElementById(frameId);
   items.forEach((it,i)=>{
-    if(type==='gold' && i>=6) return; // gold has first 6
+    if(type==='gold' && i>=6) return;
     const div=document.createElement('div');
     div.className='prod-item';
     div.dataset.src=`https://raw.githubusercontent.com/MenboLD/LD_Field/main/${it}`;
@@ -327,51 +274,53 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
     history[b]=[];
     for(let i=2;i<=6;i++){ slots[b][i]=null; const t=cellEl(b,i); if(t){t.innerHTML='';t.removeAttribute('data-type');} }
     nextIndex[b]=2;
+    document.querySelector(`.block[data-block="${b}"]`).classList.remove('highlight');
   });
   currentBlock='A'; refreshEditingHighlight('A');
 });
 
-/* send animation + reset after */
+/* send animation + filter filled blocks only */
 document.getElementById('sendBtn').addEventListener('click',async ()=>{
   const btn=document.getElementById('sendBtn');
   btn.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:180});
-  await sendDataToSupabase();
-  document.getElementById('resetBtn').click(); // auto clear lineup
+
+  const name=document.getElementById('username').value.trim()||"NoneName";
+  const payload={username:name};
+
+  blocks.forEach(b=>{
+    const blockEl=document.querySelector(`.block[data-block="${b}"]`);
+    const itemsInBlock=slots[b].slice(2,7);
+    const hasNone=itemsInBlock.some(x=>!x); // null or empty
+    if(itemsInBlock.length===5 && !hasNone){
+      blockEl.classList.add('highlight'); // ハイライト表示
+      const blockData={};
+      itemsInBlock.forEach((s,i)=>{
+        blockData[i+1]={src:s.src.split("/").pop().replace(".png",""),type:s.type};
+      });
+      payload[`block_${b.toLowerCase()}`]=blockData;
+    } else {
+      blockEl.classList.remove('highlight');
+    }
+  });
+
+  if(Object.keys(payload).length>1){ // username以外に送信対象あり
+    const {error}=await supabase.from("logs").insert([payload]);
+    if(error) alert("Error: "+error.message); else alert("Upload completed!");
+  } else {
+    alert("No fully filled blocks to send.");
+  }
+
+  document.getElementById('resetBtn').click();
 });
 
 /* highlight first */
 document.addEventListener('DOMContentLoaded',()=>{currentBlock='A';nextIndex['A']=2;refreshEditingHighlight('A');});
 
 /* Supabase */
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
 const SUPABASE_URL="https://cxgbloauhimuhdjlvwvh.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
 const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-function isBlank(s){return(!s||/^\s*$/.test(s));}
-
-async function sendDataToSupabase(){
-  const name=document.getElementById('username').value.trim()||"NoneName";
-  const payload={username:name};
-  ["A","B","C","D","E","F"].forEach(b=>{
-    const block={};
-    for(let i=2;i<=6;i++){
-      const s=slots[b][i];
-      block[i-1]=s?{src:s.src.split("/").pop().replace(".png",""),type:s.type}:"NoneItem";
-    }
-    payload[`block_${b.toLowerCase()}`]=block;
-  });
-  const {error}=await supabase.from("logs").insert([payload]);
-  if(error)alert("Error: "+error.message);else alert("Upload completed!");
-}
-</script>
-
 </script>
 </body>
 </html>
-
-
-
 
