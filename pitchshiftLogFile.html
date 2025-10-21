@@ -101,8 +101,6 @@ body{
 }
 .prod-item img{ width:70%; height:auto; display:block; }
 
-.prod-empty{ background:transparent; cursor:default; }
-
 .cell[data-type="gold"]{ background: rgba(255,235,180,0.88); }
 .cell[data-type="diamond"]{  background: rgba(200,235,255,0.88); }
 
@@ -206,7 +204,6 @@ const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-/* items */
 const ITEMS=[
   { key:"Unit", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" },
   { key:"Key", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" },
@@ -220,18 +217,18 @@ const ITEMS=[
   { key:"Petfood", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_upgrade.png" }
 ];
 
-/* blocks & grid */
 const blocksContainer=document.getElementById("blocksContainer");
 const blockNames=['A','B','C','D','E','F'];
 let activeCell=null;
 
 function selectCell(cell){
+  // UNDOセルは編集中にならない
+  if(cell.classList.contains('undo-cell')) return;
   if(activeCell) activeCell.classList.remove('editing');
   activeCell=cell;
   cell.classList.add('editing');
 }
 
-/* fill a cell with item */
 function fillCell(item,type){
   if(!activeCell) return;
   activeCell.innerHTML=`<img src="${item.img}" alt="${item.key}">`;
@@ -240,7 +237,6 @@ function fillCell(item,type){
   activeCell.classList.remove('editing');
 }
 
-/* create blocks with optional existing data */
 function createBlocks(existingData=null){
   blocksContainer.innerHTML='';
 
@@ -259,7 +255,7 @@ function createBlocks(existingData=null){
       // 左上UNDOセル（Aブロックのみ）
       if(bidx===0 && i===0){
         cell.className='cell undo-cell';
-        cell.innerHTML='<img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="UNDO">';
+        cell.innerHTML='<img src="https://menbold.github.io/LD_Field/icon_UNDO.png" alt="UNDO">';
         cell.addEventListener('click',()=>{
           if(activeCell){
             activeCell.innerHTML='';
@@ -271,7 +267,6 @@ function createBlocks(existingData=null){
         cell.className='cell';
         cell.addEventListener('click',()=>selectCell(cell));
 
-        // 既存データがあれば復元
         if(existingData && existingData[bname] && existingData[bname][i]){
           const slot = existingData[bname][i];
           if(slot.src!=='NoneItem'){
@@ -294,7 +289,6 @@ function createBlocks(existingData=null){
   });
 }
 
-/* products */
 const goldFrame=document.getElementById('goldFrame');
 const diaFrame=document.getElementById('diaFrame');
 
@@ -308,4 +302,40 @@ function createProducts(){
     const dbtn=document.createElement('div'); dbtn.className='prod-item'; dbtn.title=it.key+' (Diamond)';
     dbtn.innerHTML=`<img src="${it.img}" alt="${it.key}">`;
     dbtn.addEventListener('click',()=>fillCell(it,'diamond'));
-    diaFrame.appendChild(dbtn
+    diaFrame.appendChild(dbtn);
+  });
+}
+
+document.getElementById('sendBtn').addEventListener('click',async()=>{
+  const username=document.getElementById('username').value.trim();
+  const blocksData={};
+  blockNames.forEach(bname=>{
+    const blockEl=document.querySelector(`.block .label:contains('${bname}')`)?.parentElement || document.querySelector(`.block .label`).parentElement;
+    const slots=[];
+    const cells=blockEl.querySelectorAll('.cell');
+    cells.forEach(c=>{
+      if(c.dataset.src){
+        slots.push({ src:c.dataset.src, type:c.dataset.type });
+      } else {
+        slots.push({ src:'NoneItem', type:'none' });
+      }
+    });
+    blocksData[bname]=slots;
+  });
+
+  const payload={ username, ...blocksData, created_at:new Date().toISOString() };
+  const { data, error } = await supabase.from('logs').insert([payload]);
+  if(error){ alert('Error: '+error.message); } else { 
+    alert('Sent!'); 
+    createBlocks(); // 送信後リセット
+  }
+});
+
+document.getElementById('resetBtn').addEventListener('click',()=>createBlocks());
+
+/* 初期描画 */
+createBlocks();
+createProducts();
+</script>
+</body>
+</html>
