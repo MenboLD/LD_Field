@@ -129,6 +129,7 @@ function parseMaybeJson(v){
   if(typeof v==="object") return v;
   try { return JSON.parse(v); } catch { return null; }
 }
+
 async function aggregate(){
   const username = document.getElementById("usernameInput").value.trim();
   const statusEl = document.getElementById("status");
@@ -147,61 +148,68 @@ async function aggregate(){
   if(!data || data.length===0){ statusEl.textContent="No data found."; return; }
 
   const stats = {};
-  items.forEach(it => stats[it.key]={gold:0, dia:0});
+  items.forEach(it => stats[it.key] = { gold: 0, dia: 0 });
   let validBlocks = 0;
   let totalItemCount = 0;
 
-  data.forEach(row=>{
+  for(const row of data){
     const blockFields = ['block_a','block_b','block_c','block_d','block_e','block_f'];
-    blockFields.forEach(field=>{
+    for(const field of blockFields){
       const parsed = parseMaybeJson(row[field]);
-      if(!parsed) return;
+      if(!parsed) continue;
 
       const keys = Object.keys(parsed);
-      if(keys.length!==5) return; // 5スロットチェック
+      if(keys.length !== 5) continue; // 5スロット以外は無視
 
-      // NoneItemやnullが含まれるブロックは除外
+      // 不正スロット検出
       const hasInvalid = keys.some(k=>{
         const slot = parsed[k];
-        return (!slot || slot.src==="NoneItem" || slot.src===null);
+        return (!slot || !slot.src || slot.src === "NoneItem" || slot.src === "nll");
       });
-      if(hasInvalid) return;
+      if(hasInvalid) continue;
 
       validBlocks++;
 
-      keys.forEach(k=>{
+      for(const k of keys){
         const slot = parsed[k];
-        const src = slot.src;
-        const type = slot.type;
+        if(!slot) continue;
 
-        if(!stats[src]) return;
+        // src正規化
+        let src = slot.src || "";
+        src = src.replace(/^icon_\d+_/, ""); // 例: icon_03_scroll_30 → scroll_30
+        src = src.charAt(0).toUpperCase() + src.slice(1); // scroll_30 → Scroll_30
+
+        const type = slot.type;
+        if(!stats[src]) continue;
 
         totalItemCount++;
+        if(type === "gold") stats[src].gold++;
+        if(type === "diamond" || type === "dia") stats[src].dia++;
+      }
+    }
+  }
 
-        // Gold / Dia カウント
-        if(type==="gold") stats[src].gold++;
-        if(type==="diamond" || type==="dia") stats[src].dia++;
-      });
-    });
-  });
+  let html = "<thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th><th>%</th></tr></thead><tbody>";
+  let totalGold = 0, totalDia = 0, totalBoth = 0;
 
-  let html="<thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th><th>%</th></tr></thead><tbody>";
-  let totalGold=0, totalDia=0, totalBoth=0;
-  items.forEach(it=>{
-    const g=stats[it.key].gold;
-    const d=stats[it.key].dia;
-    const both=g+d;
-    totalGold+=g; totalDia+=d; totalBoth+=both;
+  for(const it of items){
+    const g = stats[it.key].gold;
+    const d = stats[it.key].dia;
+    const both = g + d;
+    totalGold += g;
+    totalDia += d;
+    totalBoth += both;
 
-    html+=`<tr>
+    html += `<tr>
       <td><img src="${it.img}" alt="${it.key}"></td>
-      <td>${g} <span class='small'>(${totalItemCount?((g/totalItemCount*100).toFixed(2)):'0.00'}%)</span></td>
-      <td>${d} <span class='small'>(${totalItemCount?((d/totalItemCount*100).toFixed(2)):'0.00'}%)</span></td>
+      <td>${g} <span class='small'>(${totalItemCount ? (g/totalItemCount*100).toFixed(2) : '0.00'}%)</span></td>
+      <td>${d} <span class='small'>(${totalItemCount ? (d/totalItemCount*100).toFixed(2) : '0.00'}%)</span></td>
       <td>${both}</td>
-      <td>${totalItemCount?((both/totalItemCount*100).toFixed(2)):'0.00'}%</td>
+      <td>${totalItemCount ? (both/totalItemCount*100).toFixed(2) : '0.00'}%</td>
     </tr>`;
-  });
-  html+=`<tfoot><tr><td>Total</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>100%</td></tr></tfoot>`;
+  }
+
+  html += `<tfoot><tr><td>Total</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>100%</td></tr></tfoot>`;
   table.innerHTML = html;
   table.style.display = "table";
   blockCountEl.textContent = `Total number of full blocks: ${validBlocks}`;
