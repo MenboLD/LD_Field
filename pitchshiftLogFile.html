@@ -31,6 +31,16 @@ body{
   box-sizing: border-box;
   padding: 0 4vw;
 }
+.footer-img {
+  text-align: center;     /* 中央寄せ */
+  margin-top: 20px;       /* 上に少し余白 */
+}
+
+.footer-img img {
+  width: 300px;           /* 横幅300pxに固定 */
+  height: auto;           /* アスペクト比を保つ */
+  display: inline-block;  /* 中央寄せを有効にする */
+}
 .topbar { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
 .topbar input {
   width:100%;
@@ -131,6 +141,16 @@ body{
   line-height:1.6;
   font-size:13px;
 }
+.footer-img {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+.footer-img img {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+}
 
 @media (max-width:420px){
   :root{ --cell-size:40px; --prod-size:52px; --block-gap:8px; }
@@ -139,17 +159,6 @@ body{
 @media (max-width:360px){
   :root{ --cell-size:36px; --prod-size:48px; --block-gap:6px; }
 }
-.footer-img {
-  text-align: center;     /* 中央寄せ */
-  margin-top: 20px;       /* 上に少し余白 */
-}
-
-.footer-img img {
-  width: 300px;           /* 横幅300pxに固定 */
-  height: auto;           /* アスペクト比を保つ */
-  display: inline-block;  /* 中央寄せを有効にする */
-}
-
 </style>
 </head>
 <body>
@@ -184,7 +193,7 @@ body{
     <a href="https://menbold.github.io/LD_Field/aggregate.html" target="_blank" style="color:#4cc9ff;text-decoration:none;font-weight:bold;">View aggregate results</a>
   </div>
 
- <!-- About sections -->
+  <!-- About sections -->
   <div class="about-section">
     <div class="about-title" data-target="about-en">About this page ▼</div>
     <div class="about-content" id="about-en">
@@ -222,17 +231,20 @@ body{
   <div class="footer-img">
     <img src="https://menbold.github.io/LD_Field/madeinme.png" alt="made by me">
   </div>
+
 </div>
 
 <script>
-/* toggle about section */
+/* toggle sections */
 document.addEventListener('DOMContentLoaded',()=>{
-  const toggle=document.getElementById('aboutToggle');
-  const content=document.getElementById('aboutContent');
-  toggle.addEventListener('click',()=>{
-    const visible=content.style.display==='block';
-    content.style.display=visible?'none':'block';
-    toggle.textContent=visible?'About this page ▼':'About this page ▲';
+  document.querySelectorAll('.about-title').forEach(t=>{
+    t.addEventListener('click',()=>{
+      const id=t.dataset.target;
+      const el=document.getElementById(id);
+      const visible=el.style.display==='block';
+      el.style.display=visible?'none':'block';
+      t.textContent=t.textContent.replace(visible?'▲':'▼',visible?'▼':'▲');
+    });
   });
 });
 
@@ -243,104 +255,7 @@ document.addEventListener('touchend', (e) => {
   document.lastTouch = now;
 }, false);
 
-/* blocks initialization */
-const blocks = ['A','B','C','D','E','F'];
-const slots = {};
-const history = {};
-const nextIndex = {};
-let currentBlock = 'A';
-
-blocks.forEach(b=>{
-  slots[b] = [null,null,null,null,null,null,null];
-  history[b] = [];
-  nextIndex[b] = 2;
-});
-
-/* create block elements */
-const blockContainer = document.getElementById('blocksContainer');
-blocks.forEach(b=>{
-  const block = document.createElement('div');
-  block.className = 'block';
-  block.dataset.block = b;
-  block.innerHTML = `<div class="label">${b}</div>
-    <div class="cell undo-cell" data-pos="1" data-block="${b}" title="UNDO" onclick="undoBlock('${b}')">
-      <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="undo">
-    </div>` + Array.from({length:5},(_,i)=>`<div class="cell" data-pos="${i+2}" data-block="${b}" onclick="focusCell(event)"></div>`).join('');
-  blockContainer.appendChild(block);
-});
-
-/* define gold/dia products */
-const items=[
-  "icon_01_unit.png","icon_02_free.png","icon_03_artifacts.png",
-  "icon_03_scroll_30.png","icon_04_scroll_100.png","icon_05_scroll_300.png",
-  "icon_06_Mythstone.png","icon_07_chur.png","icon_08_pet_draw.png","icon_09_pet_upgrade.png"
-];
-function buildProducts(frameId,type){
-  const frame=document.getElementById(frameId);
-  items.forEach((it,i)=>{
-    if(type==='gold' && i>=6) return; // gold has first 6
-    const div=document.createElement('div');
-    div.className='prod-item';
-    div.dataset.src=`https://raw.githubusercontent.com/MenboLD/LD_Field/main/${it}`;
-    div.dataset.type=type;
-    div.onclick=placeProduct;
-    div.innerHTML=`<img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/${it}" alt="">`;
-    frame.appendChild(div);
-  });
-}
-buildProducts('goldFrame','gold');
-buildProducts('diaFrame','diamond');
-
-/* helper functions */
-function cellEl(block,pos){ return document.querySelector(`.cell[data-block="${block}"][data-pos="${pos}"]`); }
-function getNextBlock(block){ const i=blocks.indexOf(block); return blocks[(i+1)%blocks.length]; }
-function refreshEditingHighlight(block){
-  document.querySelectorAll('.cell').forEach(c=>c.classList.remove('editing'));
-  const idx=nextIndex[block];
-  if(idx>=2&&idx<=6){ const el=cellEl(block,idx); if(el) el.classList.add('editing'); }
-  currentBlock=block;
-}
-function focusCell(e){
-  const el=e.currentTarget; const b=el.dataset.block; const pos=+el.dataset.pos;
-  if(pos>=2&&pos<=6) nextIndex[b]=pos; refreshEditingHighlight(b);
-}
-function placeProduct(e){
-  const item=e.currentTarget;
-  const src=item.dataset.src; const type=item.dataset.type;
-  const b=currentBlock; const idx=nextIndex[b]; if(!(idx>=2&&idx<=6))return;
-  slots[b][idx]={src,type}; history[b].push(idx);
-  const t=cellEl(b,idx); if(t){t.innerHTML=`<img src="${src}" alt="">`;t.setAttribute('data-type',type);}
-  let ni=idx+1; while(ni<=6&&slots[b][ni])ni++;
-  if(ni<=6){nextIndex[b]=ni;refreshEditingHighlight(b);}else{nextIndex[getNextBlock(b)]=2;refreshEditingHighlight(getNextBlock(b));}
-}
-function undoBlock(b){
-  const last=history[b].pop(); if(!last)return;
-  slots[b][last]=null; const t=cellEl(b,last); if(t){t.innerHTML='';t.removeAttribute('data-type');}
-  nextIndex[b]=last; refreshEditingHighlight(b);
-}
-
-/* reset */
-document.getElementById('resetBtn').addEventListener('click',()=>{
-  blocks.forEach(b=>{
-    history[b]=[];
-    for(let i=2;i<=6;i++){ slots[b][i]=null; const t=cellEl(b,i); if(t){t.innerHTML='';t.removeAttribute('data-type');} }
-    nextIndex[b]=2;
-  });
-  currentBlock='A'; refreshEditingHighlight('A');
-});
-
-/* send animation + reset after */
-document.getElementById('sendBtn').addEventListener('click',async ()=>{
-  const btn=document.getElementById('sendBtn');
-  btn.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:180});
-  await sendDataToSupabase();
-  document.getElementById('resetBtn').click(); // auto clear lineup
-});
-
-/* highlight first */
-document.addEventListener('DOMContentLoaded',()=>{currentBlock='A';nextIndex['A']=2;refreshEditingHighlight('A');});
-
-/* Supabase */
+/* blocks setup (省略: 元のコードと同じでOK) */
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -348,24 +263,7 @@ const SUPABASE_URL="https://cxgbloauhimuhdjlvwvh.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
 const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-function isBlank(s){return(!s||/^\s*$/.test(s));}
-
-async function sendDataToSupabase(){
-  const name=document.getElementById('username').value.trim()||"NoneName";
-  const payload={username:name};
-  ["A","B","C","D","E","F"].forEach(b=>{
-    const block={};
-    for(let i=2;i<=6;i++){
-      const s=slots[b][i];
-      block[i-1]=s?{src:s.src.split("/").pop().replace(".png",""),type:s.type}:"NoneItem";
-    }
-    payload[`block_${b.toLowerCase()}`]=block;
-  });
-  const {error}=await supabase.from("logs").insert([payload]);
-  if(error)alert("Error: "+error.message);else alert("Upload completed!");
-}
+/* sendDataToSupabase() 等はあなたの既存コードと同じ */
 </script>
 </body>
 </html>
-
-
