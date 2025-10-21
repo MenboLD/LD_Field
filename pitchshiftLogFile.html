@@ -184,7 +184,6 @@ body{
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* toggle about section */
 document.addEventListener('DOMContentLoaded',()=>{
@@ -230,17 +229,16 @@ blocks.forEach(b=>{
   blockContainer.appendChild(block);
 });
 
-/* define gold/diamond products */
+/* define gold/dia products */
 const items=[
   "icon_01_unit.png","icon_02_free.png","icon_03_artifacts.png",
   "icon_03_scroll_30.png","icon_04_scroll_100.png","icon_05_scroll_300.png",
   "icon_06_Mythstone.png","icon_07_chur.png","icon_08_pet_draw.png","icon_09_pet_upgrade.png"
 ];
-
 function buildProducts(frameId,type){
   const frame=document.getElementById(frameId);
   items.forEach((it,i)=>{
-    if(type==='gold' && i>=6) return; // gold only first 6 items
+    if(type==='gold' && i>=6) return; // gold has first 6
     const div=document.createElement('div');
     div.className='prod-item';
     div.dataset.src=`https://raw.githubusercontent.com/MenboLD/LD_Field/main/${it}`;
@@ -250,7 +248,6 @@ function buildProducts(frameId,type){
     frame.appendChild(div);
   });
 }
-
 buildProducts('goldFrame','gold');
 buildProducts('diaFrame','diamond');
 
@@ -263,96 +260,69 @@ function refreshEditingHighlight(block){
   if(idx>=2&&idx<=6){ const el=cellEl(block,idx); if(el) el.classList.add('editing'); }
   currentBlock=block;
 }
-
 function focusCell(e){
   const el=e.currentTarget; const b=el.dataset.block; const pos=+el.dataset.pos;
-  if(pos>=2&&pos<=6) nextIndex[b]=pos; 
-  refreshEditingHighlight(b);
+  if(pos>=2&&pos<=6) nextIndex[b]=pos; refreshEditingHighlight(b);
 }
-
 function placeProduct(e){
   const item=e.currentTarget;
   const src=item.dataset.src; const type=item.dataset.type;
   const b=currentBlock; const idx=nextIndex[b]; if(!(idx>=2&&idx<=6))return;
   slots[b][idx]={src,type}; history[b].push(idx);
   const t=cellEl(b,idx); if(t){t.innerHTML=`<img src="${src}" alt="">`;t.setAttribute('data-type',type);}
-  // move to next empty slot
   let ni=idx+1; while(ni<=6&&slots[b][ni])ni++;
-  if(ni<=6){nextIndex[b]=ni;refreshEditingHighlight(b);}
-  else{nextIndex[getNextBlock(b)]=2;refreshEditingHighlight(getNextBlock(b));}
+  if(ni<=6){nextIndex[b]=ni;refreshEditingHighlight(b);}else{nextIndex[getNextBlock(b)]=2;refreshEditingHighlight(getNextBlock(b));}
 }
-
 function undoBlock(b){
   const last=history[b].pop(); if(!last)return;
   slots[b][last]=null; const t=cellEl(b,last); if(t){t.innerHTML='';t.removeAttribute('data-type');}
   nextIndex[b]=last; refreshEditingHighlight(b);
 }
 
-/* reset all blocks */
+/* reset */
 document.getElementById('resetBtn').addEventListener('click',()=>{
   blocks.forEach(b=>{
     history[b]=[];
-    for(let i=2;i<=6;i++){
-      slots[b][i]=null; 
-      const t=cellEl(b,i); if(t){t.innerHTML='';t.removeAttribute('data-type');} 
-    }
+    for(let i=2;i<=6;i++){ slots[b][i]=null; const t=cellEl(b,i); if(t){t.innerHTML='';t.removeAttribute('data-type');} }
     nextIndex[b]=2;
   });
   currentBlock='A'; refreshEditingHighlight('A');
 });
 
-/* send animation + auto reset */
+/* send animation + reset after */
 document.getElementById('sendBtn').addEventListener('click',async ()=>{
   const btn=document.getElementById('sendBtn');
   btn.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:180});
   await sendDataToSupabase();
-  document.getElementById('resetBtn').click();
+  document.getElementById('resetBtn').click(); // auto clear lineup
 });
 
-/* highlight first cell */
+/* highlight first */
 document.addEventListener('DOMContentLoaded',()=>{currentBlock='A';nextIndex['A']=2;refreshEditingHighlight('A');});
 
-/* Supabase setup */
+/* Supabase */
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
 const SUPABASE_URL="https://cxgbloauhimuhdjlvwvh.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
 const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-/* mapping for sending to DB */
-const ITEM_NAME_MAP = {
-  "icon_01_unit": "Unit",
-  "icon_02_free": "Free",
-  "icon_03_artifacts": "Artifact",
-  "icon_03_scroll_30": "Scroll_30",
-  "icon_04_scroll_100": "Scroll_100",
-  "icon_05_scroll_300": "Scroll_300",
-  "icon_06_Mythstone": "Mythstone",
-  "icon_07_chur": "Chur",
-  "icon_08_pet_draw": "PetDraw",
-  "icon_09_pet_upgrade": "PetUpgrade"
-};
+function isBlank(s){return(!s||/^\s*$/.test(s));}
 
 async function sendDataToSupabase(){
   const name=document.getElementById('username').value.trim()||"NoneName";
   const payload={username:name};
-
-  blocks.forEach(b=>{
+  ["A","B","C","D","E","F"].forEach(b=>{
     const block={};
     for(let i=2;i<=6;i++){
       const s=slots[b][i];
-      if(s){
-        const fileKey = s.src.split("/").pop().replace(".png","");
-        const nameKey = ITEM_NAME_MAP[fileKey] || fileKey;
-        block[i-1] = {src: nameKey, type: s.type};
-      } else {
-        block[i-1] = "NoneItem";
-      }
+      block[i-1]=s?{src:s.src.split("/").pop().replace(".png",""),type:s.type}:"NoneItem";
     }
-    payload[`block_${b.toLowerCase()}`] = block;
+    payload[`block_${b.toLowerCase()}`]=block;
   });
-
-  const {error} = await supabase.from("logs").insert([payload]);
-  if(error) alert("Error: "+error.message);
-  else alert("Upload completed!");
+  const {error}=await supabase.from("logs").insert([payload]);
+  if(error)alert("Error: "+error.message);else alert("Upload completed!");
 }
 </script>
 </body>
