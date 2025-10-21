@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>LD Daily Shop — 編集モック (sanitize & send)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/> <!-- ダブルタップズーム防止 -->
+<title>LD_DailyShop</title>
 <style>
 :root{
   --bg:#0f1113;
@@ -31,7 +31,14 @@ body{
   box-sizing: border-box;
   padding: 0 4vw;
 }
-.topbar { display:flex; gap:8px; margin-bottom:10px; }
+.topbar { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+.topbar input {
+  width:100%;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  text-align:center;
+}
 .btn { flex:1; background: linear-gradient(180deg,#ffce00,#d4a000); border-radius:10px; padding:10px; font-weight:700; color:#111; border:0; box-shadow:0 4px #b38a00; cursor:pointer; transition: transform .08s, box-shadow .08s; }
 .btn:active { transform: translateY(3px); box-shadow:0 2px #b38a00; }
 .btn.secondary { background: linear-gradient(180deg,#00b4ff,#0072d4); color:#fff; box-shadow:0 4px #005ea8; }
@@ -117,57 +124,16 @@ body{
 <body>
 <div class="viewport">
   <div class="topbar">
-    <div style="margin:10px 0; text-align:center;">
-      <label for="username" style="font-weight:bold;">User Name</label>
-      <input id="username" type="text" placeholder="Enter your name (optional)" style="padding:4px 8px; border-radius:6px; border:1px solid #ccc;">
-    </div>
+    <input id="username" type="text" placeholder="Enter user name (optional)">
     <button id="sendBtn" class="btn">SEND</button>
     <button id="resetBtn" class="btn secondary">All Reset</button>
   </div>
 
-  <div class="blocks" id="blocksContainer">
-    <script>
-      const blockNames = ['A','B','C','D','E','F'];
-      blockNames.forEach(b=>{
-        document.write(`
-          <div class="block" data-block="${b}">
-            <div class="label">${b}</div>
-            <div class="cell undo-cell" data-pos="1" data-block="${b}" title="UNDO" onclick="undoBlock('${b}')">
-              <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png?raw=true" alt="undo">
-            </div>
-            <div class="cell" data-pos="2" data-block="${b}" onclick="focusCell(event)"></div>
-            <div class="cell" data-pos="3" data-block="${b}" onclick="focusCell(event)"></div>
-            <div class="cell" data-pos="4" data-block="${b}" onclick="focusCell(event)"></div>
-            <div class="cell" data-pos="5" data-block="${b}" onclick="focusCell(event)"></div>
-            <div class="cell" data-pos="6" data-block="${b}" onclick="focusCell(event)"></div>
-          </div>
-        `);
-      });
-    </script>
-  </div>
+  <div class="blocks" id="blocksContainer"></div>
 
   <div class="products">
-    <div class="price-frame gold-frame" id="goldFrame">
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" data-type="gold" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" alt=""></div>
-    </div>
-
-    <div class="price-frame dia-frame" id="diaFrame">
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_07_chur.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_07_chur.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_pet_draw.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_pet_draw.png" alt=""></div>
-      <div class="prod-item" data-src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_upgrade.png" data-type="diamond" onclick="placeProduct(event)"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_upgrade.png" alt=""></div>
-    </div>
+    <div class="price-frame gold-frame" id="goldFrame"></div>
+    <div class="price-frame dia-frame" id="diaFrame"></div>
   </div>
 
   <div class="legend">
@@ -176,302 +142,147 @@ body{
       <div>… Gold</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <div class="box diamond"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_00_type_dia.png" alt="dia"></div>
+      <div class="box diamond"><img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_00_type_dia.png" alt="diamond"></div>
       <div>… Diamond</div>
     </div>
   </div>
 
-  <div class="hint">下段で選択→上段の編集中マスへ配置。UNDOは各ブロック左上。</div>
+  <div class="hint">
+    Select below → place into the highlighted cell above.<br>
+    When you enter your username, you can later view only your data in the aggregate results.<br>
+    <a href="https://menbold.github.io/LD_Field/aggregate.html" target="_blank" style="color:#4cc9ff;text-decoration:none;font-weight:bold;">View aggregate results</a>
+  </div>
 </div>
 
 <script>
-/* --- 状態 --- */
+/* prevent double-tap zoom */
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (document.lastTouch && now - document.lastTouch < 300) e.preventDefault();
+  document.lastTouch = now;
+}, false);
+
+/* blocks initialization */
 const blocks = ['A','B','C','D','E','F'];
 const slots = {};
 const history = {};
 const nextIndex = {};
 let currentBlock = 'A';
 
-/* 初期化 */
 blocks.forEach(b=>{
-  slots[b] = [null,null,null,null,null,null,null]; // 0..6, 1=UNDO, 2..6 items
+  slots[b] = [null,null,null,null,null,null,null];
   history[b] = [];
   nextIndex[b] = 2;
 });
 
-/* helper DOM */
-function cellEl(block,pos){ return document.querySelector(`.cell[data-block="${block}"][data-pos="${pos}"]`); }
-function getNextBlock(block){ const i = blocks.indexOf(block); return blocks[(i+1)%blocks.length]; }
+/* create block elements */
+const blockContainer = document.getElementById('blocksContainer');
+blocks.forEach(b=>{
+  const block = document.createElement('div');
+  block.className = 'block';
+  block.dataset.block = b;
+  block.innerHTML = `<div class="label">${b}</div>
+    <div class="cell undo-cell" data-pos="1" data-block="${b}" title="UNDO" onclick="undoBlock('${b}')">
+      <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="undo">
+    </div>` + Array.from({length:5},(_,i)=>`<div class="cell" data-pos="${i+2}" data-block="${b}" onclick="focusCell(event)"></div>`).join('');
+  blockContainer.appendChild(block);
+});
 
+/* define gold/dia products */
+const items=[
+  "icon_01_unit.png","icon_02_free.png","icon_03_artifacts.png",
+  "icon_03_scroll_30.png","icon_04_scroll_100.png","icon_05_scroll_300.png",
+  "icon_06_Mythstone.png","icon_07_chur.png","icon_08_pet_draw.png","icon_09_pet_upgrade.png"
+];
+function buildProducts(frameId,type){
+  const frame=document.getElementById(frameId);
+  items.forEach((it,i)=>{
+    if(type==='gold' && i>=6) return; // gold has first 6
+    const div=document.createElement('div');
+    div.className='prod-item';
+    div.dataset.src=`https://raw.githubusercontent.com/MenboLD/LD_Field/main/${it}`;
+    div.dataset.type=type;
+    div.onclick=placeProduct;
+    div.innerHTML=`<img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/${it}" alt="">`;
+    frame.appendChild(div);
+  });
+}
+buildProducts('goldFrame','gold');
+buildProducts('diaFrame','diamond');
+
+/* helper functions */
+function cellEl(block,pos){ return document.querySelector(`.cell[data-block="${block}"][data-pos="${pos}"]`); }
+function getNextBlock(block){ const i=blocks.indexOf(block); return blocks[(i+1)%blocks.length]; }
 function refreshEditingHighlight(block){
   document.querySelectorAll('.cell').forEach(c=>c.classList.remove('editing'));
-  const idx = nextIndex[block];
-  if(idx>=2 && idx<=6){
-    const el = cellEl(block, idx);
-    if(el) el.classList.add('editing');
-  }
-  currentBlock = block;
+  const idx=nextIndex[block];
+  if(idx>=2&&idx<=6){ const el=cellEl(block,idx); if(el) el.classList.add('editing'); }
+  currentBlock=block;
 }
-
-/* セル選択 */
 function focusCell(e){
-  const el = e.currentTarget;
-  const block = el.dataset.block;
-  const pos = Number(el.dataset.pos);
-  if(pos>=2 && pos<=6) nextIndex[block] = pos;
-  refreshEditingHighlight(block);
+  const el=e.currentTarget; const b=el.dataset.block; const pos=+el.dataset.pos;
+  if(pos>=2&&pos<=6) nextIndex[b]=pos; refreshEditingHighlight(b);
 }
-
-/* 配置（商品選択→上段配置） */
 function placeProduct(e){
-  const item = e.currentTarget;
-  const src = item.dataset.src;
-  const type = item.dataset.type || null; // "gold" or "diamond"
-  const block = currentBlock;
-  const idx = nextIndex[block];
-  if(!(idx>=2 && idx<=6)) return;
-
-  slots[block][idx] = { src, type };
-  history[block].push(idx);
-
-  const target = cellEl(block,idx);
-  if(target){
-    target.innerHTML = `<img src="${src}" alt="">`;
-    if(type) target.setAttribute('data-type',type); else target.removeAttribute('data-type');
-  }
-
-  // 次の入力位置
-  let ni = idx+1;
-  while(ni<=6 && slots[block][ni]) ni++;
-  if(ni<=6){ nextIndex[block]=ni; refreshEditingHighlight(block); }
-  else { nextIndex[getNextBlock(block)]=2; refreshEditingHighlight(getNextBlock(block)); }
+  const item=e.currentTarget;
+  const src=item.dataset.src; const type=item.dataset.type;
+  const b=currentBlock; const idx=nextIndex[b]; if(!(idx>=2&&idx<=6))return;
+  slots[b][idx]={src,type}; history[b].push(idx);
+  const t=cellEl(b,idx); if(t){t.innerHTML=`<img src="${src}" alt="">`;t.setAttribute('data-type',type);}
+  let ni=idx+1; while(ni<=6&&slots[b][ni])ni++;
+  if(ni<=6){nextIndex[b]=ni;refreshEditingHighlight(b);}else{nextIndex[getNextBlock(b)]=2;refreshEditingHighlight(getNextBlock(b));}
+}
+function undoBlock(b){
+  const last=history[b].pop(); if(!last)return;
+  slots[b][last]=null; const t=cellEl(b,last); if(t){t.innerHTML='';t.removeAttribute('data-type');}
+  nextIndex[b]=last; refreshEditingHighlight(b);
 }
 
-/* UNDO */
-function undoBlock(block){
-  const last = history[block].pop();
-  if(!last) return;
-  slots[block][last] = null;
-  const t = cellEl(block,last);
-  if(t){ t.innerHTML=''; t.removeAttribute('data-type'); }
-  nextIndex[block] = last;
-  refreshEditingHighlight(block);
-}
-
-/* リセット（UNDO保持） */
+/* reset */
 document.getElementById('resetBtn').addEventListener('click',()=>{
   blocks.forEach(b=>{
-    history[b] = [];
-    for(let i=2;i<=6;i++){
-      slots[b][i] = null;
-      const t = cellEl(b,i);
-      if(t){ t.innerHTML=''; t.removeAttribute('data-type'); }
-    }
+    history[b]=[];
+    for(let i=2;i<=6;i++){ slots[b][i]=null; const t=cellEl(b,i); if(t){t.innerHTML='';t.removeAttribute('data-type');} }
     nextIndex[b]=2;
   });
-  currentBlock='A';
-  refreshEditingHighlight('A');
+  currentBlock='A'; refreshEditingHighlight('A');
 });
 
-/* SENDアニメ */
-document.getElementById('sendBtn').addEventListener('click',()=>{
+/* send animation + reset after */
+document.getElementById('sendBtn').addEventListener('click',async ()=>{
   const btn=document.getElementById('sendBtn');
-  btn.animate([{transform:'scale(1)'},{transform:'scale(0.98)'},{transform:'scale(1)'}],{duration:180});
+  btn.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:180});
+  await sendDataToSupabase();
+  document.getElementById('resetBtn').click(); // auto clear lineup
 });
 
-/* 初期選択 */
-document.addEventListener('DOMContentLoaded',()=>{
-  currentBlock='A';
-  nextIndex['A']=2;
-  refreshEditingHighlight('A');
-});
+/* highlight first */
+document.addEventListener('DOMContentLoaded',()=>{currentBlock='A';nextIndex['A']=2;refreshEditingHighlight('A');});
 
-/* =====================
-   sanitizeBlocks 実装
-   - 入力: slots (元の構造)
-   - 出力: sanitizedBlocks: { A: null | {1:{src,type}|"NoneItem", ...,5:...}, ... }
-     （出力は各ブロックが null＝送信除外、または 1..5 のキーを持つオブジェクト）
-   ルール:
-    ・ブロック内に NoneItem（未入力）が含まれる場合 → 全部 NoneItem（結果：null）
-    ・同一種別かつ同価格（src と type が同じ） の重複があれば：
-       - 3つ以上 → 全部 NoneItem（null）
-       - ちょうど2つ → その2つのうち一方を type='gold'、もう一方を type='diamond' に変換
-   注: slots の index 2..6 を対象（5アイテム）
-   ===================== */
-function sanitizeBlocks(slotsInput){
-  const result = {};
-
-  for(const b of blocks){
-    const arr = slotsInput[b] || [null,null,null,null,null,null,null];
-    // extract items for pos 2..6
-    const items = [];
-    for(let i=2;i<=6;i++){
-      const it = arr[i];
-      if(it && it.src) items.push({ idx:i, src: it.src, type: it.type || null });
-      else items.push({ idx:i, src: null, type: null });
-    }
-
-    // if any empty (src null) --> rule ② 全消去 -> mark as null (send exclude)
-    const hasEmpty = items.some(it => !it.src);
-    if(hasEmpty){
-      // This block becomes excluded
-      result[b] = null;
-      continue;
-    }
-
-    // Count duplicates by combination of src + type (same price kind & same species)
-    // But spec: "同価格種類かつ同種アイテム" -> detect by same src AND same type value (both gold/diamond or both null)
-    // We'll count by src + '|' + (type || 'none')
-    const counts = {};
-    for(const it of items){
-      const key = `${it.src}|${it.type||'none'}`;
-      counts[key] = (counts[key] || 0) + 1;
-    }
-
-    // If any count >= 3 => rule a-2 全消去
-    const anyThreeOrMore = Object.values(counts).some(c => c >= 3);
-    if(anyThreeOrMore){
-      result[b] = null;
-      continue;
-    }
-
-    // If there is any key with count==2 => rule a-1: convert one to gold, one to diamond
-    // Note: It's possible multiple distinct items each occur twice — we'll handle each pair independently.
-    // We'll build a new block items copy
-    const newBlock = {}; // will hold positions 1..5 mapped from original 2..6
-    // initialize with original src/type
-    for(let i=0;i<items.length;i++){
-      const posKey = i+1; // 1..5 for returned structure
-      newBlock[posKey] = { src: items[i].src, type: items[i].type || null };
-    }
-
-    // For each duplicate key with count==2, find its two positions and set types to gold/diamond
-    for(const [key, c] of Object.entries(counts)){
-      if(c === 2){
-        // parse src and oldType from key
-        const [srcVal, oldType] = key.split('|');
-        let found = 0;
-        for(let i=0;i<items.length;i++){
-          if(items[i].src === srcVal && (items[i].type||'none') === oldType){
-            found++;
-            const posKey = i+1;
-            // assign types: first found -> gold, second -> diamond
-            if(found === 1) newBlock[posKey].type = 'gold';
-            else if(found === 2) newBlock[posKey].type = 'diamond';
-          }
-        }
-      }
-    }
-
-    // If no duplicates => keep original types (but ensure type is 'gold' or 'diamond' if present)
-    // Finalize: ensure every slot has {src,type} where type is "gold"/"diamond" or null
-    for(let k=1;k<=5;k++){
-      const it = newBlock[k];
-      if(!it || !it.src){
-        newBlock[k] = "NoneItem"; // guard, though we already filtered empties
-      } else {
-        // normalize type -> if null, leave as null; but we prefer to keep string "gold"/"diamond" or null
-        if(it.type !== 'gold' && it.type !== 'diamond') {
-          // keep original as-is (could be null) — for robustness set to null
-          newBlock[k].type = null;
-        }
-      }
-    }
-
-    // All checks done: assign result[b] the object with keys 1..5
-    result[b] = newBlock;
-  }
-
-  return result;
-}
+/* Supabase */
 </script>
-
-<!-- Supabase読み込み -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL="https://cxgbloauhimuhdjlvwvh.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// アイコンURL -> 短縮名マップ（必要ならここで短縮化）
-const iconMap = {
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png": "Unit",
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png": "Key",
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png": "Artifact",
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png": "Scroll_30",
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png": "Scroll_100",
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png": "Scroll_300",
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png": "Mythstone",
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_07_chur.png": "Chur",
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_pet_draw.png": "Battery",
-  "https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_upgrade.png": "Petfood"
-};
-
-// 空判定
-function isBlank(str){ return (!str || /^\s*$/.test(str)); }
-
-// normalize: sanitized block (result from sanitizeBlocks) -> payload format
-// input: sanitizedBlock either null (exclude) or object {1:{src,type}|"NoneItem",...,5:...}
-// output: null or object with keys "1".."5" each either "NoneItem" or {srcShort, type}
-function normalizeSanitizedBlock(sanitizedBlock){
-  if(!sanitizedBlock) return null;
-  const out = {};
-  for(let i=1;i<=5;i++){
-    const v = sanitizedBlock[i];
-    if(!v || v === "NoneItem") {
-      out[String(i)] = "NoneItem";
-    } else {
-      // convert src url -> short name if mapping exists
-      const srcShort = iconMap[v.src] ? iconMap[v.src] : v.src;
-      out[String(i)] = { src: srcShort, type: v.type ? v.type : null };
-    }
-  }
-  return out;
-}
+function isBlank(s){return(!s||/^\s*$/.test(s));}
 
 async function sendDataToSupabase(){
-  const nameInput = document.getElementById('username');
-  let username = nameInput ? nameInput.value.trim() : '';
-  if(isBlank(username)) username = "NoneName";
-
-  // sanitize the current slots
-  const sanitized = sanitizeBlocks(slots); // returns {A: null|obj, B: ...}
-
-  // if ALL blocks are null -> nothing to send
-  const allNull = blocks.every(b => sanitized[b] === null);
-  if(allNull){
-    alert("入力が不完全または無効なため送信できません（全ブロック無効）。");
-    return;
-  }
-
-  // build payload — for database columns block_a..block_f, provide null or object
-  const payload = {
-    username,
-    block_a: normalizeSanitizedBlock(sanitized['A']),
-    block_b: normalizeSanitizedBlock(sanitized['B']),
-    block_c: normalizeSanitizedBlock(sanitized['C']),
-    block_d: normalizeSanitizedBlock(sanitized['D']),
-    block_e: normalizeSanitizedBlock(sanitized['E']),
-    block_f: normalizeSanitizedBlock(sanitized['F']),
-    created_at: new Date().toISOString()
-  };
-
-  // send
-  const { data, error } = await supabase.from('logs').insert([payload]);
-
-  const btn=document.getElementById('sendBtn');
-  btn.animate([{transform:'scale(1)'},{transform:'scale(0.98)'},{transform:'scale(1)'}],{duration:180});
-
-  if(error){
-    console.error(error);
-    alert("送信エラー: " + error.message);
-  }else{
-    alert("送信完了しました！");
-  }
+  const name=document.getElementById('username').value.trim()||"NoneName";
+  const payload={username:name};
+  ["A","B","C","D","E","F"].forEach(b=>{
+    const block={};
+    for(let i=2;i<=6;i++){
+      const s=slots[b][i];
+      block[i-1]=s?{src:s.src.split("/").pop().replace(".png",""),type:s.type}:"NoneItem";
+    }
+    payload[`block_${b.toLowerCase()}`]=block;
+  });
+  const {error}=await supabase.from("logs").insert([payload]);
+  if(error)alert("Error: "+error.message);else alert("Upload completed!");
 }
-
-document.getElementById('sendBtn').addEventListener('click', async ()=>{ await sendDataToSupabase(); });
 </script>
-
 </body>
 </html>
