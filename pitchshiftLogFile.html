@@ -346,8 +346,8 @@ document.addEventListener('DOMContentLoaded',()=>{currentBlock='A';nextIndex['A'
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL="https://<YOUR_PROJECT>.supabase.co";
-const SUPABASE_KEY="<YOUR_ANON_KEY>";
+const SUPABASE_URL="https://cxgbloauhimuhdjlvwvh.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
 const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 function isBlank(s){return(!s||/^\s*$/.test(s));}
@@ -371,6 +371,7 @@ async function sendDataToSupabase(){
 </script>
 </body>
 </html>
+
 
 
 
