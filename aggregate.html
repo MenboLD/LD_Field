@@ -72,6 +72,43 @@ function parseMaybeJson(v){
   try { return JSON.parse(v); } catch { return null; }
 }
 
+// 重複チェック関数
+function checkBlockDuplicates(block){
+  const typeMap = {};
+  let duplicateFound = false;
+
+  // まずアイテムごとに種類＋価格ごとの個数を集計
+  for(const slot of block){
+    if(!slot || !slot.src) continue;
+    const src = ITEM_NAME_MAP_REVERSE[slot.src] || slot.src;
+    const type = slot.type;
+    if(src === "Unit") continue; // Unit は無視
+    if(!typeMap[src]) typeMap[src] = {};
+    typeMap[src][type] = (typeMap[src][type] || 0) + 1;
+  }
+
+  // 緩和処理：同ブロック内に同種類がちょうど 2 個で重複している場合、片方の価格種類を変更
+  for(const src in typeMap){
+    const counts = Object.values(typeMap[src]);
+    if(counts.length === 2 && counts[0] === 1 && counts[1] === 1){
+      // 緩和条件により1個の価格を変更
+      const types = Object.keys(typeMap[src]);
+      // 変更: types[0] の方を反対に
+      typeMap[src][types[0]]--;
+      const oppositeType = types[0] === "gold" ? "diamond" : "gold";
+      typeMap[src][oppositeType] = (typeMap[src][oppositeType] || 0) + 1;
+    }
+  }
+
+  // 重複が残る場合はブロック無効
+  for(const src in typeMap){
+    for(const t in typeMap[src]){
+      if(typeMap[src][t] > 1) duplicateFound = true;
+    }
+  }
+  return !duplicateFound;
+}
+
 async function aggregate(){
   const username = document.getElementById("usernameInput").value.trim();
   const statusEl = document.getElementById("status");
@@ -106,23 +143,23 @@ async function aggregate(){
       const isValid = block.every(slot => slot && slot.src && !["noitem","nll","NoneItem"].includes(slot.src));
       if(!isValid) continue;
 
+      // 重複チェック＋緩和条件適用
+      if(!checkBlockDuplicates(block)) continue;
+
       validBlocks++;
       const counted = {};
 
       for(const slot of block){
-        if(!slot || !slot.src || ["noitem","nll","NoneItem"].includes(slot.src)) continue;
-
+        if(!slot || !slot.src) continue;
         const src = ITEM_NAME_MAP_REVERSE[slot.src] || slot.src;
         const type = slot.type;
         if(!stats[src]) continue;
 
         if(src === "Unit"){
-          // Unit はブロック内重複を無視せずすべてカウント
           if(type === "gold") stats[src].gold++;
           if(type === "diamond" || type === "dia") stats[src].dia++;
           totalItemCount++;
         } else {
-          // その他アイテムはブロック内重複は無視
           if(!counted[src]){
             if(type === "gold") stats[src].gold++;
             if(type === "diamond" || type === "dia") stats[src].dia++;
