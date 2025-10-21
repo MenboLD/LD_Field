@@ -108,7 +108,7 @@ tfoot td {
 <script>
 /* Supabase config */
 const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA"; // 実際の anon key に置き換えてください
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA"; // 実際のanon keyに差し替え
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 /* Item icons */
@@ -160,17 +160,20 @@ async function aggregate() {
   }
 
   const stats = {};
-  items.forEach(it => stats[it.key] = { gold: 0, dia: 0, pct: 0 });
+  items.forEach(it => stats[it.key] = { gold: 0, dia: 0 });
   let validBlocks = 0;
-  let totalItemCount = 0;
+  let totalItemCount = 0; // NoneItemを除いた総アイテム数
 
   data.forEach(row => {
     const blockFields = ['block_a','block_b','block_c','block_d','block_e','block_f'];
     blockFields.forEach(field => {
       const parsed = parseMaybeJson(row[field]);
       if (!parsed) return;
+
       const values = Object.values(parsed);
-      if (values.length !== 5) return; // 5スロット埋まっていなければスキップ
+      if (values.length < 5) return; // 5スロット未満は除外
+      const hasNoneItem = values.some(v => !v || v.src === "NoneItem");
+      if (hasNoneItem) return; // NoneItem が1つでもあれば除外
 
       validBlocks++;
 
@@ -178,13 +181,11 @@ async function aggregate() {
       const seenDia = new Set();
 
       values.forEach(slot => {
-        if (!slot || slot.src === "NoneItem") return;
         const src = slot.src;
         const type = slot.type;
+        if (!stats[src]) return;
 
-        totalItemCount++; // NoneItem を除いたアイテム総数
-
-        if (!stats[src]) stats[src] = { gold: 0, dia: 0, pct: 0 };
+        totalItemCount++; // NoneItem以外の総数カウント
 
         if (type === "gold" && !seenGold.has(src)) {
           stats[src].gold++;
@@ -198,15 +199,7 @@ async function aggregate() {
     });
   });
 
-  // 出現率を計算（合計100%になるよう正規化）
-  items.forEach(it => {
-    const g = stats[it.key].gold;
-    const d = stats[it.key].dia;
-    const total = g + d;
-    stats[it.key].pct = totalItemCount ? ((total / totalItemCount) * 100).toFixed(2) : "0.00";
-  });
-
-  // テーブル生成
+  // build table
   let html = "<thead><tr><th>Item</th><th>Gold</th><th>Dia</th><th>Gold&Dia</th><th>%</th></tr></thead><tbody>";
   let totalGold = 0, totalDia = 0, totalBoth = 0;
 
@@ -216,13 +209,18 @@ async function aggregate() {
     const both = g + d;
     totalGold += g; totalDia += d; totalBoth += both;
 
+    const goldCell = `${g} <span class='small'>(${(g / totalItemCount * 100).toFixed(2)}%)</span>`;
+    const diaCell  = `${d} <span class='small'>(${(d / totalItemCount * 100).toFixed(2)}%)</span>`;
+    const bothCell = `${both}`;
+    const pctCell  = ((both / totalItemCount * 100).toFixed(2)) + "%";
+
     html += `
       <tr>
         <td><img src="${it.img}" alt="${it.key}"></td>
-        <td>${g}</td>
-        <td>${d}</td>
-        <td>${both}</td>
-        <td>${stats[it.key].pct}%</td>
+        <td>${goldCell}</td>
+        <td>${diaCell}</td>
+        <td>${bothCell}</td>
+        <td>${pctCell}</td>
       </tr>
     `;
   });
@@ -230,7 +228,6 @@ async function aggregate() {
   html += `<tfoot><tr><td>Total</td><td>${totalGold}</td><td>${totalDia}</td><td>${totalBoth}</td><td>100%</td></tr></tfoot>`;
   table.innerHTML = html;
   table.style.display = "table";
-
   blockCountEl.textContent = `Total number of blocks: ${validBlocks}`;
   statusEl.textContent = "Completed.";
 }
