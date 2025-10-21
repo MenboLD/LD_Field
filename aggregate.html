@@ -53,6 +53,19 @@ const items = [
   { key: "Petfood", img: imgBase + "icon_09_pet_upgrade.png" }
 ];
 
+const ITEM_NAME_MAP_REVERSE = {
+  "Unit": "Unit",
+  "Free": "Key",
+  "Artifact": "Artifact",
+  "Scroll_30": "Scroll_30",
+  "Scroll_100": "Scroll_100",
+  "Scroll_300": "Scroll_300",
+  "Mythstone": "Mythstone",
+  "Chur": "Chur",
+  "PetDraw": "Battery",
+  "PetUpgrade": "Petfood"
+};
+
 function parseMaybeJson(v){
   if(!v) return null;
   if(typeof v==="object") return v;
@@ -90,30 +103,24 @@ async function aggregate(){
       const block = Object.values(parsed);
       if(block.length !== 5) continue;
 
-      // ブロックが全スロット有効か確認
       const isValid = block.every(slot => slot && slot.src && !["noitem","nll","NoneItem"].includes(slot.src));
       if(!isValid) continue;
 
       validBlocks++;
-
-      // ブロック内重複カウント管理（非ユニットのみ）
       const counted = {};
 
       for(const slot of block){
         if(!slot || !slot.src || ["noitem","nll","NoneItem"].includes(slot.src)) continue;
 
-        let src = slot.src.replace(/^icon_\d+_/, "");
-        src = src.charAt(0).toUpperCase() + src.slice(1);
+        const src = ITEM_NAME_MAP_REVERSE[slot.src] || slot.src;
         const type = slot.type;
         if(!stats[src]) continue;
 
         if(src === "Unit"){
-          // ユニットはブロック内で重複OK
           if(type === "gold") stats[src].gold++;
           if(type === "diamond" || type === "dia") stats[src].dia++;
           totalItemCount++;
         } else {
-          // 他アイテムは1ブロック内で1回のみ
           if(!counted[src]){
             if(type === "gold") stats[src].gold++;
             if(type === "diamond" || type === "dia") stats[src].dia++;

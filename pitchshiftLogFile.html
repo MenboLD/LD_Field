@@ -186,7 +186,6 @@ body{
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* toggle about section */
 document.addEventListener('DOMContentLoaded',()=>{
   const toggle=document.getElementById('aboutToggle');
   const content=document.getElementById('aboutContent');
@@ -198,162 +197,113 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 /* prevent double-tap zoom */
-document.addEventListener('touchend', (e) => {
-  const now = Date.now();
-  if (document.lastTouch && now - document.lastTouch < 300) e.preventDefault();
-  document.lastTouch = now;
-}, false);
-
-/* blocks initialization */
-const blocks = ['A','B','C','D','E','F'];
-const slots = {};
-const history = {};
-const nextIndex = {};
-let currentBlock = 'A';
-
-blocks.forEach(b=>{
-  slots[b] = [null,null,null,null,null,null,null];
-  history[b] = [];
-  nextIndex[b] = 2;
-});
-
-/* create block elements */
-const blockContainer = document.getElementById('blocksContainer');
-blocks.forEach(b=>{
-  const block = document.createElement('div');
-  block.className = 'block';
-  block.dataset.block = b;
-  block.innerHTML = `<div class="label">${b}</div>
-    <div class="cell undo-cell" data-pos="1" data-block="${b}" title="UNDO" onclick="undoBlock('${b}')">
-      <img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_UNDO.png" alt="undo">
-    </div>` + Array.from({length:5},(_,i)=>`<div class="cell" data-pos="${i+2}" data-block="${b}" onclick="focusCell(event)"></div>`).join('');
-  blockContainer.appendChild(block);
-});
-
-/* define gold/diamond products */
-const items=[
-  "icon_01_unit.png","icon_02_free.png","icon_03_artifacts.png",
-  "icon_03_scroll_30.png","icon_04_scroll_100.png","icon_05_scroll_300.png",
-  "icon_06_Mythstone.png","icon_07_chur.png","icon_08_pet_draw.png","icon_09_pet_upgrade.png"
-];
-
-function buildProducts(frameId,type){
-  const frame=document.getElementById(frameId);
-  items.forEach((it,i)=>{
-    if(type==='gold' && i>=6) return; // gold only first 6 items
-    const div=document.createElement('div');
-    div.className='prod-item';
-    div.dataset.src=`https://raw.githubusercontent.com/MenboLD/LD_Field/main/${it}`;
-    div.dataset.type=type;
-    div.onclick=placeProduct;
-    div.innerHTML=`<img src="https://raw.githubusercontent.com/MenboLD/LD_Field/main/${it}" alt="">`;
-    frame.appendChild(div);
-  });
-}
-
-buildProducts('goldFrame','gold');
-buildProducts('diaFrame','diamond');
-
-/* helper functions */
-function cellEl(block,pos){ return document.querySelector(`.cell[data-block="${block}"][data-pos="${pos}"]`); }
-function getNextBlock(block){ const i=blocks.indexOf(block); return blocks[(i+1)%blocks.length]; }
-function refreshEditingHighlight(block){
-  document.querySelectorAll('.cell').forEach(c=>c.classList.remove('editing'));
-  const idx=nextIndex[block];
-  if(idx>=2&&idx<=6){ const el=cellEl(block,idx); if(el) el.classList.add('editing'); }
-  currentBlock=block;
-}
-
-function focusCell(e){
-  const el=e.currentTarget; const b=el.dataset.block; const pos=+el.dataset.pos;
-  if(pos>=2&&pos<=6) nextIndex[b]=pos; 
-  refreshEditingHighlight(b);
-}
-
-function placeProduct(e){
-  const item=e.currentTarget;
-  const src=item.dataset.src; const type=item.dataset.type;
-  const b=currentBlock; const idx=nextIndex[b]; if(!(idx>=2&&idx<=6))return;
-  slots[b][idx]={src,type}; history[b].push(idx);
-  const t=cellEl(b,idx); if(t){t.innerHTML=`<img src="${src}" alt="">`;t.setAttribute('data-type',type);}
-  // move to next empty slot
-  let ni=idx+1; while(ni<=6&&slots[b][ni])ni++;
-  if(ni<=6){nextIndex[b]=ni;refreshEditingHighlight(b);}
-  else{nextIndex[getNextBlock(b)]=2;refreshEditingHighlight(getNextBlock(b));}
-}
-
-function undoBlock(b){
-  const last=history[b].pop(); if(!last)return;
-  slots[b][last]=null; const t=cellEl(b,last); if(t){t.innerHTML='';t.removeAttribute('data-type');}
-  nextIndex[b]=last; refreshEditingHighlight(b);
-}
-
-/* reset all blocks */
-document.getElementById('resetBtn').addEventListener('click',()=>{
-  blocks.forEach(b=>{
-    history[b]=[];
-    for(let i=2;i<=6;i++){
-      slots[b][i]=null; 
-      const t=cellEl(b,i); if(t){t.innerHTML='';t.removeAttribute('data-type');} 
-    }
-    nextIndex[b]=2;
-  });
-  currentBlock='A'; refreshEditingHighlight('A');
-});
-
-/* send animation + auto reset */
-document.getElementById('sendBtn').addEventListener('click',async ()=>{
-  const btn=document.getElementById('sendBtn');
-  btn.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:180});
-  await sendDataToSupabase();
-  document.getElementById('resetBtn').click();
-});
-
-/* highlight first cell */
-document.addEventListener('DOMContentLoaded',()=>{currentBlock='A';nextIndex['A']=2;refreshEditingHighlight('A');});
+document.addEventListener('touchstart', function preventZoom(e) {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
 
 /* Supabase setup */
-const SUPABASE_URL="https://cxgbloauhimuhdjlvwvh.supabase.co";
-const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
-const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-/* mapping for sending to DB */
-const ITEM_NAME_MAP = {
-  "icon_01_unit": "Unit",
-  "icon_02_free": "Free",
-  "icon_03_artifacts": "Artifact",
-  "icon_03_scroll_30": "Scroll_30",
-  "icon_04_scroll_100": "Scroll_100",
-  "icon_05_scroll_300": "Scroll_300",
-  "icon_06_Mythstone": "Mythstone",
-  "icon_07_chur": "Chur",
-  "icon_08_pet_draw": "PetDraw",
-  "icon_09_pet_upgrade": "PetUpgrade"
-};
+/* items */
+const ITEMS=[
+  { key:"Unit", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_01_unit.png" },
+  { key:"Key", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_02_free.png" },
+  { key:"Artifact", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_artifacts.png" },
+  { key:"Scroll_30", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_03_scroll_30.png" },
+  { key:"Scroll_100", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_04_scroll_100.png" },
+  { key:"Scroll_300", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_05_scroll_300.png" },
+  { key:"Mythstone", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_06_Mythstone.png" },
+  { key:"Chur", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_07_chur.png" },
+  { key:"Battery", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_08_pet_draw.png" },
+  { key:"Petfood", img:"https://raw.githubusercontent.com/MenboLD/LD_Field/main/icon_09_pet_upgrade.png" }
+];
 
-async function sendDataToSupabase(){
-  const name=document.getElementById('username').value.trim()||"NoneName";
-  const payload={username:name};
+/* blocks & grid */
+const blocksContainer=document.getElementById("blocksContainer");
+const blockNames=['A','B','C','D','E','F'];
+let activeCell=null;
 
-  blocks.forEach(b=>{
-    const block={};
-    for(let i=2;i<=6;i++){
-      const s=slots[b][i];
-      if(s){
-        const fileKey = s.src.split("/").pop().replace(".png","");
-        const nameKey = ITEM_NAME_MAP[fileKey] || fileKey;
-        block[i-1] = {src: nameKey, type: s.type};
-      } else {
-        block[i-1] = "NoneItem";
-      }
+function createBlocks(){
+  blocksContainer.innerHTML='';
+  blockNames.forEach(bname=>{
+    const block=document.createElement('div');
+    block.className='block';
+    const label=document.createElement('div');
+    label.className='label';
+    label.textContent=bname;
+    block.appendChild(label);
+    for(let i=0;i<6;i++){
+      const cell=document.createElement('div');
+      cell.className='cell';
+      cell.dataset.block=bname;
+      cell.dataset.index=i;
+      cell.addEventListener('click',()=>{ selectCell(cell); });
+      block.appendChild(cell);
     }
-    payload[`block_${b.toLowerCase()}`] = block;
+    blocksContainer.appendChild(block);
   });
-
-  const {error} = await supabase.from("logs").insert([payload]);
-  if(error) alert("Error: "+error.message);
-  else alert("Upload completed!");
 }
+
+function selectCell(cell){
+  if(activeCell) activeCell.classList.remove('editing');
+  activeCell=cell;
+  cell.classList.add('editing');
+}
+
+function fillCell(item,type){
+  if(!activeCell) return;
+  activeCell.innerHTML=`<img src="${item.img}" alt="${item.key}">`;
+  activeCell.dataset.type=type;
+  activeCell.dataset.src=item.key;
+  activeCell.classList.remove('editing');
+}
+
+/* products */
+const goldFrame=document.getElementById('goldFrame');
+const diaFrame=document.getElementById('diaFrame');
+
+function createProducts(){
+  ITEMS.forEach(it=>{
+    const gbtn=document.createElement('div'); gbtn.className='prod-item'; gbtn.title=it.key+' (Gold)';
+    gbtn.innerHTML=`<img src="${it.img}" alt="${it.key}">`;
+    gbtn.addEventListener('click',()=>fillCell(it,'gold'));
+    goldFrame.appendChild(gbtn);
+
+    const dbtn=document.createElement('div'); dbtn.className='prod-item'; dbtn.title=it.key+' (Diamond)';
+    dbtn.innerHTML=`<img src="${it.img}" alt="${it.key}">`;
+    dbtn.addEventListener('click',()=>fillCell(it,'diamond'));
+    diaFrame.appendChild(dbtn);
+  });
+}
+
+document.getElementById('sendBtn').addEventListener('click',async()=>{
+  const username=document.getElementById('username').value.trim();
+  const blocksData={};
+  blockNames.forEach(bname=>{
+    const blockEl=document.querySelector(`.block .label:contains('${bname}')`)?.parentElement;
+    if(!blockEl) return;
+    const slots=[];
+    const cells=blockEl.querySelectorAll('.cell');
+    cells.forEach(c=>{
+      if(c.dataset.src){
+        slots.push({ src:c.dataset.src, type:c.dataset.type });
+      }else{
+        slots.push({ src:'NoneItem', type:'none' });
+      }
+    });
+    blocksData['block_'+bname.toLowerCase()]=slots;
+  });
+  const payload={ username, ...blocksData, created_at:new Date().toISOString() };
+  const { data, error } = await supabase.from('logs').insert([payload]);
+  if(error){ alert('Error: '+error.message); } else { alert('Sent!'); createBlocks(); }
+});
+
+document.getElementById('resetBtn').addEventListener('click',()=>createBlocks());
+
+createBlocks();
+createProducts();
 </script>
 </body>
 </html>
