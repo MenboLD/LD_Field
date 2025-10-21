@@ -117,10 +117,12 @@ async function aggregate(){
         if(!stats[src]) continue;
 
         if(src === "Unit"){
+          // Unit はブロック内重複を無視せずすべてカウント
           if(type === "gold") stats[src].gold++;
           if(type === "diamond" || type === "dia") stats[src].dia++;
           totalItemCount++;
         } else {
+          // その他アイテムはブロック内重複は無視
           if(!counted[src]){
             if(type === "gold") stats[src].gold++;
             if(type === "diamond" || type === "dia") stats[src].dia++;
