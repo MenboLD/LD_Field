@@ -158,26 +158,22 @@ async function aggregate(){
       const parsed = parseMaybeJson(row[field]);
       if(!parsed) continue;
 
-      const keys = Object.keys(parsed);
-      if(keys.length !== 5) continue; // 5スロット以外は無視
+      // JSONが数値キーオブジェクトの場合に対応
+      const block = Array.isArray(parsed) ? parsed : Object.values(parsed);
+      if(block.length !== 5) continue;
 
-      // 不正スロット検出
-      const hasInvalid = keys.some(k=>{
-        const slot = parsed[k];
-        return (!slot || !slot.src || slot.src === "NoneItem" || slot.src === "nll");
-      });
-      if(hasInvalid) continue;
+      // すべてのスロットが有効な場合のみ
+      const isValid = block.every(slot => slot && slot.src && !["noitem", "nll", "NoneItem"].includes(slot.src));
+      if(!isValid) continue;
 
       validBlocks++;
 
-      for(const k of keys){
-        const slot = parsed[k];
-        if(!slot) continue;
+      for(const slot of block){
+        if(!slot || !slot.src) continue;
 
         // src正規化
-        let src = slot.src || "";
-        src = src.replace(/^icon_\d+_/, ""); // 例: icon_03_scroll_30 → scroll_30
-        src = src.charAt(0).toUpperCase() + src.slice(1); // scroll_30 → Scroll_30
+        let src = slot.src.replace(/^icon_\d+_/, "");
+        src = src.charAt(0).toUpperCase() + src.slice(1);
 
         const type = slot.type;
         if(!stats[src]) continue;
