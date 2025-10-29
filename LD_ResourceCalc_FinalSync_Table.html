@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LD Resource Calculator — FinalSync（固定版・ルレ入力削除）</title>
+  <style>
+    :root{ --bg:#0b0c10; --card:#151821; --muted:#9aa3b2; --fg:#e6ebf5; --accent:#7cc2ff; --ok:#22c55e; --radius:16px; }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(160deg,#0b0c10,#0f1117);color:var(--fg);font:14px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    header{padding:20px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    header h1{font-size:18px;margin:0}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 16px 64px}
+    .grid{display:grid;gap:14px}
+    .grid.cols{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .card{background:var(--card);border:1px solid #222636;border-radius:var(--radius);padding:14px}
+    .card h2{font-size:14px;margin:0 0 8px 0;color:#d7def0}
+    label{display:block;font-size:12px;color:var(--muted);margin:6px 0}
+    input[type="number"],select{width:100%;background:#0f1320;color:var(--fg);border:1px solid #263045;border-radius:10px;padding:8px}
+    input[type="range"]{width:100%}
+    .row{display:flex;gap:10px;align-items:center}
+    .switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+    .switch input{display:none}
+    .toggle{width:38px;height:22px;border-radius:999px;background:#2a3144;position:relative;transition:.2s}
+    .toggle::after{content:"";position:absolute;inset:3px auto 3px 3px;width:16px;border-radius:999px;background:#c6d1e3;transition:.2s}
+    .switch input:checked + .toggle{background:#1f5fff}
+    .switch input:checked + .toggle::after{left:19px}
+    table{width:100%;border-collapse:separate;border-spacing:0 6px}
+    th,td{text-align:right;padding:8px 10px}
+    th{color:#c9d6ee;font-weight:600}
+    td{background:#0f1320;border-top:1px solid #1c2438;border-bottom:1px solid #1c2438}
+    td:first-child,th:first-child{text-align:center}
+    td:first-child{border-left:1px solid #1c2438;border-top-left-radius:10px;border-bottom-left-radius:10px}
+    td:last-child{border-right:1px solid #1c2438;border-top-right-radius:10px;border-bottom-right-radius:10px}
+    .pill{display:inline-block;padding:.25rem .6rem;border-radius:999px;font-weight:600;border:1px solid #2a3144;background:#0f1320}
+    .pill.ok{color:#a7f3d0;border-color:#1b5c46;background:#0a1f1a}
+    .muted{color:var(--muted)}
+    .mono{font-variant-numeric:tabular-nums}
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <h1>LD Resource Calculator — FinalSync（固定版・ルレ入力削除）</h1>
+    <div class="muted">ルーレット出現率の入力は廃止。Excel固定の平均効果Rを内部適用。招待状は入手/初期在庫ともに即時換算。</div>
+  </header>
+
+  <main class="wrap grid cols">
+    <section class="card">
+      <h2>入力設定</h2>
+      <label>マッチ数（1〜25）
+        <input id="matches" type="range" min="1" max="25" value="25" step="1" oninput="ui.matchesOut.textContent=value; render()">
+        <div>選択: <span id="matchesOut" class="pill mono">25</span></div>
+      </label>
+      <div class="row">
+        <div style="flex:1">
+          <label>難易度（1〜5試合目）
+            <select id="diff1" onchange="render()"><option>ノーマル</option><option>太初</option><option selected>神</option><option>地獄</option></select>
+          </label>
+        </div>
+        <div style="flex:1">
+          <label>難易度（6〜25試合目）
+            <select id="diff2" onchange="render()"><option>ノーマル</option><option>太初</option><option selected>地獄</option><option>神</option></select>
+          </label>
+        </div>
+      </div>
+      <label class="switch"><input id="pack" type="checkbox" checked onchange="render()"><span class="toggle"></span><span>3倍パケ <span id="packState" class="pill">ON</span></span></label>
+      <label style="margin-top:8px">初期招待状（使用前の所持枚数）
+        <input id="initInvite" type="number" min="0" step="1" value="0" oninput="render()" />
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>出力（合計）</h2>
+      <div id="summary" class="row" style="flex-wrap:wrap"></div>
+    </section>
+
+    <section class="card" style="grid-column:1/-1">
+      <h2>一覧表（1〜N試合累計）</h2>
+      <div id="tableAll"></div>
+    </section>
+  </main>
+
+  <script>
+    const matches=document.getElementById('matches');
+    const diff1=document.getElementById('diff1');
+    const diff2=document.getElementById('diff2');
+    const pack=document.getElementById('pack');
+    const packState=document.getElementById('packState');
+    const matchesOut=document.getElementById('matchesOut');
+    const summary=document.getElementById('summary');
+    const initInvite=document.getElementById('initInvite');
+    const tableAll=document.getElementById('tableAll');
+    const ui={matches,diff1,diff2,pack,packState,matchesOut,summary,initInvite,tableAll};
+
+    // DB
+    const BOX_RATE={'ノーマル':{'ゴールド':0,'招待状':0,'鍵':0,'チュール':0,'バッテリー':0,'ペットフード':0,'神話石':0,'不滅石':0},'太初':{'ゴールド':2238,'招待状':56,'鍵':0.298,'チュール':0.373,'バッテリー':2.938,'ペットフード':6.529,'神話石':1.109,'不滅石':1.119},'神':{'ゴールド':2209,'招待状':77,'鍵':0.177,'チュール':0.242,'バッテリー':1.63,'ペットフード':7.246,'神話石':1.178,'不滅石':0.604},'地獄':{'ゴールド':2667,'招待状':97,'鍵':0.127,'チュール':0.201,'バッテリー':1.231,'ペットフード':5.539,'神話石':0.841,'不滅石':0}};
+    const INV_RATE={'神話石':0.0188666667,'ダイヤ':0.2382333333,'ゴールド':7.2401333333};
+    const COMPLEX=new Map([[1,{on:0.9916111172}],[2,{on:1.8642137572}],[3,{on:2.5912570743}],[4,{on:3.2677055907}],[5,{on:3.8937041288}],[6,{on:0.2082139998}],[7,{on:0.3910414051}],[8,{on:0.5427878803}],[9,{on:0.6681540119}],[10,{on:0.7728467088}],[11,{on:0.8595646008}],[12,{on:0.9263440137}],[13,{on:0.9745526338}],[14,{on:1.0092180488}],[15,{on:1.0349780007}],[16,{on:1.0544917226}],[17,{on:1.0693918403}],[18,{on:1.0807389380}],[19,{on:1.0892210861}],[20,{on:1.0953515465}],[21,{on:1.0995987043}],[22,{on:1.1024041749}],[23,{on:1.1041593910}],[24,{on:1.1051921876}],[25,{on:1.1057616302}]]);
+    const RavgFixed=[1.39165,1.39165,1.39165,1.389006363,1.382978869,1.373779011,1.362026154,1.348450981,1.333745562,1.318497788,1.303172251,1.288114963,1.273568822,1.259692522,1.246579108,1.234272419,1.22278076,1.212087825,1.202161112,1.192958232,1.184431505,1.176531219,1.169207858,1.162413565,1.156103042];
+
+    const r6=x=>Math.round(x*1e6)/1e6;
+    function fmt(v,min){if(!v||Math.abs(v)<1e-12)return'－';if(min>=100)return Math.round(v).toLocaleString('ja-JP');return (Math.round(v*10)/10).toLocaleString('ja-JP');}
+    function calcMins(rows){const keys=['gold','key','churu','batt','pet','myth','undy','dia'];const m={};for(const k of keys){let min=Infinity;for(const r of rows){if(r[k]>0&&r[k]<min)min=r[k];}m[k]=(min===Infinity)?0:min;}return m;}
+
+    function render(){
+      const N=parseInt(ui.matches.value,10);
+      const d1=ui.diff1.value,d2=ui.diff2.value;
+      const pack=ui.pack.checked; ui.packState.textContent=pack?'ON':'OFF';
+      const initInv = Number(ui.initInvite.value||0);
+
+      const baseGold=5590, baseInv=96;
+      const rows=[]; const acc={gold:0,key:0,churu:0,batt:0,pet:0,myth:0,undy:0,dia:0};
+
+      // 初期招待状は即時換算
+      acc.gold = r6(acc.gold + initInv * INV_RATE['ゴールド']);
+      acc.myth = r6(acc.myth + initInv * INV_RATE['神話石']);
+      acc.dia  = r6(acc.dia  + initInv * INV_RATE['ダイヤ']);
+
+      let prevGod=0, prevHell=0;
+      for(let n=1;n<=N;n++){
+        const R = RavgFixed[n-1] || 1; // ルレ平均効果（固定）
+        const simple=(pack&&n<=5)?3:1; // 3倍は1〜5のみ
+
+        // クリア報酬（Rと3倍はここだけ）＋ 招待状の即時換算
+        const g_base=r6(baseGold*simple*R);
+        const i_base=r6(baseInv*simple*R);
+        const g_from_inv=r6(i_base*INV_RATE['ゴールド']);
+        const m_from_inv=r6(i_base*INV_RATE['神話石']);
+        const d_from_inv=r6(i_base*INV_RATE['ダイヤ']);
+
+        // ボックス（前半＝d1, 後半＝d2）
+        const godCum=(n<=5)?COMPLEX.get(n).on:COMPLEX.get(5).on;
+        const hellCum=(n<=5)?0:COMPLEX.get(n).on;
+        const godAdd=r6(Math.max(0,godCum-prevGod));
+        const hellAdd=r6(Math.max(0,hellCum-prevHell));
+        prevGod=godCum; prevHell=hellCum;
+        const rg=BOX_RATE[d1], rh=BOX_RATE[d2];
+
+        const addGold = r6(godAdd*rg['ゴールド'] + hellAdd*rh['ゴールド']);
+        const addKey  = r6(godAdd*rg['鍵']      + hellAdd*rh['鍵']);
+        const addChu  = r6(godAdd*rg['チュール']  + hellAdd*rh['チュール']);
+        const addBat  = r6(godAdd*rg['バッテリー']+ hellAdd*rh['バッテリー']);
+        const addPet  = r6(godAdd*rg['ペットフード']+hellAdd*rh['ペットフード']);
+        const addMyth = r6(godAdd*rg['神話石']   + hellAdd*rh['神話石']);
+        const addUndy = r6(godAdd*rg['不滅石']   + hellAdd*rh['不滅石']);
+
+        acc.gold = r6(acc.gold + g_base + g_from_inv + addGold);
+        acc.key  = r6(acc.key  + addKey);
+        acc.churu= r6(acc.churu+ addChu);
+        acc.batt = r6(acc.batt + addBat);
+        acc.pet  = r6(acc.pet  + addPet);
+        acc.myth = r6(acc.myth + m_from_inv + addMyth);
+        acc.undy = r6(acc.undy + addUndy);
+        acc.dia  = r6(acc.dia  + d_from_inv);
+
+        rows.push({n,gold:acc.gold,key:acc.key,churu:acc.churu,batt:acc.batt,pet:acc.pet,myth:acc.myth,undy:acc.undy,dia:acc.dia});
+      }
+
+      const mins=calcMins(rows);
+      // サマリー
+      ui.summary.innerHTML=[['ゴールド','gold'],['鍵','key'],['チュール','churu'],['バッテリー','batt'],['ペットフード','pet'],['神話石','myth'],['不滅石','undy'],['ダイヤ','dia']]
+        .map(([l,k])=>`<span class="pill ${k==='gold'?'ok':''}">${l}: <b class=mono>${fmt(acc[k],mins[k])}</b></span>`)
+        .join(' ');
+
+      // 表
+      const head=['試合数','ゴールド','鍵','チュール','バッテリー','ペットフード','神話石','不滅石','ダイヤ'];
+      let html='<table><thead><tr>'+head.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
+      rows.forEach((r,i)=>{
+        const isLast=(i===rows.length-1);
+        const td=(v,k)=>`<td style="${isLast?'font-weight:700;background:#0d1626':''}">${fmt(v,mins[k])}</td>`;
+        html+=`<tr><td style="text-align:center;${isLast?'font-weight:700;background:#0d1626':''}">${r.n}</td>`+
+          td(r.gold,'gold')+td(r.key,'key')+td(r.churu,'churu')+td(r.batt,'batt')+td(r.pet,'pet')+td(r.myth,'myth')+td(r.undy,'undy')+td(r.dia,'dia')+
+          `</tr>`;
+      });
+      html+='</tbody></table>';
+      ui.tableAll.innerHTML=html;
+    }
+    render();
+  </script>
+</body>
+</html>
