@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LD Resource Viewer v7 — Supabase連携版</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { background:#0b0c10; color:#e6ebf5; font-family:system-ui; margin:0; padding:20px; }
+    h1 { font-size:20px; }
+    select { padding:6px 10px; border-radius:6px; background:#1a1d26; color:#e6ebf5; border:1px solid #333; }
+    table { width:100%; border-collapse:collapse; margin-top:15px; font-size:13px; text-align:center; }
+    th,td { padding:6px 8px; border:1px solid #2a3144; }
+    th { background:#1f232f; color:#9aa3b2; position:sticky; top:0; }
+    td img { width:18px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+  <h1>LD Resource Viewer（Supabase連携）</h1>
+  <label>前半難易度：
+    <select id="diff_front">
+      <option>ノーマル</option><option>ハード</option><option>地獄</option><option>神</option><option selected>太初</option>
+    </select>
+  </label>
+  <label>後半難易度：
+    <select id="diff_back">
+      <option>ノーマル</option><option>ハード</option><option>地獄</option><option selected>神</option><option>太初</option>
+    </select>
+  </label>
+  <label>エネ倍率：
+    <select id="energy_mult">
+      <option value="1">1倍</option><option value="3" selected>3倍</option>
+    </select>
+  </label>
+  <button onclick="loadData()">読込</button>
+
+  <table id="table">
+    <thead>
+      <tr>
+        <th>試合</th>
+        <th>ゴールド</th><th>鍵</th><th>チュール</th>
+        <th>バッテリー</th><th>ペットフード</th>
+        <th>神話石</th><th>不滅石</th>
+        <th>ダイヤ</th><th>招待状</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function loadData() {
+      const df = document.getElementById("diff_front").value;
+      const db = document.getElementById("diff_back").value;
+      const en = parseInt(document.getElementById("energy_mult").value);
+
+      const { data, error } = await supabase
+        .from("ld_resources")
+        .select("*")
+        .eq("diff_front", df)
+        .eq("diff_back", db)
+        .eq("energy_mult", en)
+        .order("match", { ascending: true });
+
+      const tbody = document.querySelector("#table tbody");
+      tbody.innerHTML = "";
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="10" style="color:red">Error: ${error.message}</td></tr>`;
+        console.error(error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10">該当データなし</td></tr>`;
+        return;
+      }
+
+      data.forEach(row => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${row.match}</td>
+            <td>${fmt(row.gold)}</td>
+            <td>${fmt(row.key)}</td>
+            <td>${fmt(row.churu)}</td>
+            <td>${fmt(row.battery)}</td>
+            <td>${fmt(row.petfood)}</td>
+            <td>${fmt(row.myth)}</td>
+            <td>${fmt(row.immortal)}</td>
+            <td>${fmt(row.dia)}</td>
+            <td>${fmt(row.invite)}</td>
+          </tr>`;
+      });
+    }
+
+    const fmt = v => (v == null ? "－" : Math.abs(v) >= 100 ? Math.round(v).toLocaleString("ja-JP") : (Math.round(v*10)/10).toLocaleString("ja-JP"));
+  </script>
+</body>
+</html>
