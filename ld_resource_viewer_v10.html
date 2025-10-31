@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>ラッキー傭兵団 マッチリソースシミュレーター</title>
+<style>
+:root {
+  --bg:#0b0c10; --fg:#e6ebf5; --card:#151821;
+  --border:#2a3144; --muted:#9aa3b2; --accent:#7cc2ff;
+}
+body {
+  margin:0; background:linear-gradient(160deg,#0b0c10,#0f1117);
+  color:var(--fg); font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;
+  overflow-x:hidden; overscroll-behavior-x:none; touch-action:pan-y;
+}
+.wrap { max-width:1100px; margin:0 auto; padding:20px; }
+.card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; padding:16px;
+}
+header { text-align:center; margin-bottom:12px; }
+header h1 { font-size:28px; margin:0; display:inline-block; }
+header span { font-size:16px; color:var(--muted); margin-left:8px; }
+
+.controls {
+  display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;
+  justify-content:space-between;
+}
+label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); min-width:160px; }
+select { padding:6px 10px; border-radius:8px; background:#1a1d26; color:var(--fg); border:1px solid #333; }
+
+.switch {
+  position:relative; display:inline-block; width:50px; height:26px; vertical-align:middle;
+}
+.switch input { opacity:0; width:0; height:0; }
+.slider {
+  position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0;
+  background-color:#444; transition:.3s; border-radius:34px;
+}
+.slider:before {
+  position:absolute; content:""; height:20px; width:20px; left:3px; bottom:3px;
+  background:white; transition:.3s; border-radius:50%;
+}
+input:checked + .slider { background-color:#5cc07a; }
+input:checked + .slider:before { transform:translateX(24px); }
+
+button {
+  background:#1f2937; color:var(--fg);
+  border:1px solid #3b4252; border-radius:8px;
+  padding:6px 12px; cursor:pointer;
+}
+button:hover { background:#273041; }
+
+.table-wrap { overflow-x:auto; max-width:100%; }
+table { width:100%; border-collapse:collapse; font-size:13px; text-align:right; }
+th, td { border:1px solid var(--border); padding:6px 8px; vertical-align:middle; }
+th { background:#1a1d26; color:var(--muted); position:sticky; top:0; z-index:2; text-align:center; }
+th:first-child, td:first-child {
+  position:sticky; left:0; background:#151821; text-align:center;
+}
+tr.border-after-5 td { border-bottom:2px solid var(--accent); }
+img.icon { width:20px; height:20px; display:block; margin:auto; }
+.note { font-size:12px; color:var(--muted); margin:6px 0; }
+
+/* 難易度カラー */
+tr[data-diff="ノーマル"]:nth-child(odd) { background-color:#80b95c20; }
+tr[data-diff="ノーマル"]:nth-child(even){ background-color:#5f934320; }
+tr[data-diff="ハード"]:nth-child(odd){ background-color:#b86a5820; }
+tr[data-diff="ハード"]:nth-child(even){ background-color:#934b3a20; }
+tr[data-diff="地獄"]:nth-child(odd){ background-color:#c88f6620; }
+tr[data-diff="地獄"]:nth-child(even){ background-color:#a06a4620; }
+tr[data-diff="神"]:nth-child(odd){ background-color:#8a73b920; }
+tr[data-diff="神"]:nth-child(even){ background-color:#6a549620; }
+tr[data-diff="太初"]:nth-child(odd){ background-color:#f3d88820; }
+tr[data-diff="太初"]:nth-child(even){ background-color:#c9b06620; }
+
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>ラッキー傭兵団<span>マッチリソースシミュレーター</span></h1>
+  </header>
+
+  <section class="card">
+    <div class="controls">
+      <label>難易度（1〜5試合目）
+        <select id="diff_front" onchange="loadData()">
+          <option>ノーマル</option><option>ハード</option><option>地獄</option><option>神</option><option selected>太初</option>
+        </select>
+      </label>
+      <label>難易度（6〜25試合目）
+        <select id="diff_back" onchange="loadData()">
+          <option>ノーマル</option><option>ハード</option><option selected>神</option><option>地獄</option><option>太初</option>
+        </select>
+      </label>
+
+      <label style="min-width:220px;">エネ倍率
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label class="switch">
+            <input type="checkbox" id="energy_toggle" checked>
+            <span class="slider"></span>
+          </label>
+          <span id="energy_label">(現在)３倍パケ購入済</span>
+        </div>
+      </label>
+
+      <div style="display:flex; gap:8px;">
+        <button id="toggleView">折畳表示</button>
+        <button id="toggleRound">整数表示</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="note">※獲得した招待状はユニット募集に使用し、そこで得られるリソースを表中のゴールド、神話石、ダイヤに加算した状態です。</div>
+    <div class="table-wrap">
+      <table id="table">
+        <thead>
+          <tr>
+            <th>試合</th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_01_gold.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_02_key.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_03_chur.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_04_battery.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_05_petfood.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_06_Mythstone.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_07_immotalstone.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_08_dia.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_09_Scroll.png"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const { createClient } = supabase;
+const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+const client = createClient(supabaseUrl, supabaseKey);
+
+let roundInt = false;
+let condensed = false;
+
+const fmt = v => {
+  if (v == null) return "－";
+  if (roundInt) return Math.round(v).toLocaleString("ja-JP");
+  return Math.abs(v) >= 100 ? Math.round(v).toLocaleString("ja-JP") : (Math.round(v*10)/10).toLocaleString("ja-JP");
+};
+
+async function loadData() {
+  const df=document.getElementById('diff_front').value;
+  const db=document.getElementById('diff_back').value;
+  const en=document.getElementById('energy_toggle').checked ? 3 : 1;
+  const tbody=document.querySelector('#table tbody');
+  tbody.innerHTML='<tr><td colspan="10">読込中...</td></tr>';
+
+  const { data, error } = await client.from('ld_resources')
+    .select('*')
+    .eq('diff_front', df).eq('diff_back', db).eq('energy_mult', en)
+    .order('match', { ascending: true });
+
+  if (error) { tbody.innerHTML=`<tr><td colspan='10' style='color:red'>Error: ${error.message}</td></tr>`; return; }
+  if (!data || data.length===0) { tbody.innerHTML='<tr><td colspan="10">該当データなし</td></tr>'; return; }
+
+  let rows="";
+  data.forEach(row=>{
+    if(!condensed || row.match%5===0){
+      const border=(row.match===5)?' class="border-after-5"':'';
+      const diff = row.match <=5 ? df : db;
+      rows+=`<tr${border} data-diff="${diff}"><td>${row.match}</td>`+
+             `<td>${fmt(row.gold)}</td><td>${fmt(row.key)}</td><td>${fmt(row.churu)}</td>`+
+             `<td>${fmt(row.battery)}</td><td>${fmt(row.petfood)}</td>`+
+             `<td>${fmt(row.myth)}</td><td>${fmt(row.immortal)}</td>`+
+             `<td>${fmt(row.dia)}</td><td>(${fmt(row.invite)})</td></tr>`;
+    }
+  });
+  tbody.innerHTML=rows;
+}
+
+document.getElementById('toggleView').addEventListener('click', e=>{
+  condensed=!condensed; loadData();
+  e.target.textContent = condensed ? '全表示' : '折畳表示';
+});
+
+document.getElementById('toggleRound').addEventListener('click', e=>{
+  roundInt=!roundInt; loadData();
+  e.target.textContent= roundInt? '小数表示':'整数表示';
+});
+
+document.getElementById('energy_toggle').addEventListener('change', e=>{
+  const label=document.getElementById('energy_label');
+  label.textContent=e.target.checked ? '(現在)３倍パケ購入済' : '(現在)３倍パケ未購入';
+  loadData();
+});
+
+window.addEventListener('DOMContentLoaded',()=>loadData());
+</script>
+</body>
+</html>
