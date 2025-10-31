@@ -1,102 +1,147 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>LD Resource Viewer v7.1 — Supabase連携版</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body { background:#0b0c10; color:#e6ebf5; font-family:system-ui; margin:0; padding:20px; }
-    h1 { font-size:20px; }
-    select { padding:6px 10px; border-radius:6px; background:#1a1d26; color:#e6ebf5; border:1px solid #333; }
-    table { width:100%; border-collapse:collapse; margin-top:15px; font-size:13px; text-align:center; }
-    th,td { padding:6px 8px; border:1px solid #2a3144; }
-    th { background:#1f232f; color:#9aa3b2; position:sticky; top:0; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LD Resource Viewer v8 — Supabase連携＋UI強化</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg:#0b0c10; --fg:#e6ebf5; --card:#151821;
+  --border:#2a3144; --muted:#9aa3b2; --accent:#7cc2ff;
+}
+body {
+  margin:0; font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;
+  background:linear-gradient(160deg,#0b0c10,#0f1117);
+  color:var(--fg);
+}
+.wrap { max-width:1100px; margin:0 auto; padding:20px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:20px; }
+h1 { font-size:20px; margin-bottom:10px; }
+select {
+  padding:6px 10px; border-radius:8px;
+  background:#1a1d26; color:var(--fg); border:1px solid #333;
+}
+button {
+  background:#1f2937; color:var(--fg); border:1px solid #3b4252;
+  border-radius:8px; padding:6px 12px; cursor:pointer;
+}
+button:hover { background:#273041; }
+table { width:100%; border-collapse:collapse; text-align:center; margin-top:10px; font-size:13px; }
+th, td { border:1px solid var(--border); padding:6px 8px; vertical-align:middle; }
+th {
+  background:#1a1d26; color:var(--muted);
+  position:sticky; top:0; z-index:1;
+}
+tr.border-after-5 td { border-bottom:2px solid var(--accent); }
+img.icon { width:20px; height:20px; display:block; margin:auto; }
+.note { font-size:12px; color:var(--muted); margin-bottom:6px; }
+</style>
 </head>
 <body>
-  <h1>LD Resource Viewer（Supabase連携）</h1>
-  <label>前半難易度：
-    <select id="diff_front">
-      <option>ノーマル</option><option>ハード</option><option>地獄</option><option>神</option><option selected>太初</option>
-    </select>
-  </label>
-  <label>後半難易度：
-    <select id="diff_back">
-      <option>ノーマル</option><option>ハード</option><option>地獄</option><option selected>神</option><option>太初</option>
-    </select>
-  </label>
-  <label>エネ倍率：
-    <select id="energy_mult">
-      <option value="1">1倍</option><option value="3" selected>3倍</option>
-    </select>
-  </label>
-  <button onclick="loadData()">読込</button>
+  <main class="wrap">
+    <section class="card">
+      <h1>LD Resource Viewer（Supabase連携＋UI強化）</h1>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;">
+        <label>難易度（1〜5試合目）
+          <select id="diff_front" onchange="loadData()">
+            <option>ノーマル</option><option>ハード</option><option>地獄</option><option>神</option><option selected>太初</option>
+          </select>
+        </label>
+        <label>難易度（6〜25試合目）
+          <select id="diff_back" onchange="loadData()">
+            <option>ノーマル</option><option>ハード</option><option selected>神</option><option>地獄</option><option>太初</option>
+          </select>
+        </label>
+        <label>エネ倍率
+          <select id="energy_mult" onchange="loadData()">
+            <option value="1">1倍</option><option value="3" selected>3倍</option>
+          </select>
+        </label>
+        <button id="toggleView">折畳表示</button>
+      </div>
+    </section>
 
-  <table id="table">
-    <thead>
-      <tr>
-        <th>試合</th>
-        <th>ゴールド</th><th>鍵</th><th>チュール</th>
-        <th>バッテリー</th><th>ペットフード</th>
-        <th>神話石</th><th>不滅石</th>
-        <th>ダイヤ</th><th>招待状</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <script>
-    const { createClient } = supabase; // ← SDKから関数を取り出す
-    const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
-    const client = createClient(supabaseUrl, supabaseKey); // ← supabase ではなく client として扱う
-
-    async function loadData() {
-      const df = document.getElementById("diff_front").value;
-      const db = document.getElementById("diff_back").value;
-      const en = parseInt(document.getElementById("energy_mult").value);
-
-      const { data, error } = await client
-        .from("ld_resources")
-        .select("*")
-        .eq("diff_front", df)
-        .eq("diff_back", db)
-        .eq("energy_mult", en)
-        .order("match", { ascending: true });
-
-      const tbody = document.querySelector("#table tbody");
-      tbody.innerHTML = "";
-
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="10" style="color:red">Error: ${error.message}</td></tr>`;
-        console.error(error);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10">該当データなし</td></tr>`;
-        return;
-      }
-
-      data.forEach(row => {
-        tbody.innerHTML += `
+    <section class="card">
+      <div class="note">※獲得した招待状はユニット募集に使用し、そこで得られるリソースを表中のゴールド、神話石、ダイヤに加算した状態です。</div>
+      <table id="table">
+        <thead>
           <tr>
-            <td>${row.match}</td>
-            <td>${fmt(row.gold)}</td>
-            <td>${fmt(row.key)}</td>
-            <td>${fmt(row.churu)}</td>
-            <td>${fmt(row.battery)}</td>
-            <td>${fmt(row.petfood)}</td>
-            <td>${fmt(row.myth)}</td>
-            <td>${fmt(row.immortal)}</td>
-            <td>${fmt(row.dia)}</td>
-            <td>${fmt(row.invite)}</td>
-          </tr>`;
-      });
-    }
+            <th>試合</th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_01_gold.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_02_key.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_03_chur.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_04_battery.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_05_petfood.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_06_Mythstone.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_07_immotalstone.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_08_dia.png"></th>
+            <th><img class="icon" src="https://menbold.github.io/LD_Field/i_09_Scroll.png"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
 
-    const fmt = v => (v == null ? "－" : Math.abs(v) >= 100 ? Math.round(v).toLocaleString("ja-JP") : (Math.round(v*10)/10).toLocaleString("ja-JP"));
-  </script>
+<script>
+const { createClient } = supabase;
+const supabaseUrl = "https://cxgbloauhimuhdjlvwvh.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA";
+const client = createClient(supabaseUrl, supabaseKey);
+
+async function loadData(condensed=false) {
+  const df = document.getElementById("diff_front").value;
+  const db = document.getElementById("diff_back").value;
+  const en = parseInt(document.getElementById("energy_mult").value);
+  const tbody = document.querySelector("#table tbody");
+  tbody.innerHTML = "<tr><td colspan='10'>読込中...</td></tr>";
+
+  const { data, error } = await client
+    .from("ld_resources")
+    .select("*")
+    .eq("diff_front", df)
+    .eq("diff_back", db)
+    .eq("energy_mult", en)
+    .order("match", { ascending: true });
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan='10' style='color:red'>Error: ${error.message}</td></tr>`;
+    console.error(error);
+    return;
+  }
+  if (!data || data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan='10'>該当データなし</td></tr>`;
+    return;
+  }
+
+  let rows = "";
+  data.forEach(row=>{
+    if(!condensed || row.match%5===0){
+      const border = (row.match===5)?' class="border-after-5"':'';
+      rows += `<tr${border}>
+        <td>${row.match}</td>
+        <td>${fmt(row.gold)}</td><td>${fmt(row.key)}</td><td>${fmt(row.churu)}</td>
+        <td>${fmt(row.battery)}</td><td>${fmt(row.petfood)}</td>
+        <td>${fmt(row.myth)}</td><td>${fmt(row.immortal)}</td>
+        <td>${fmt(row.dia)}</td><td>(${fmt(row.invite)})</td>
+      </tr>`;
+    }
+  });
+  tbody.innerHTML = rows;
+}
+
+const fmt = v => (v == null ? "－" : Math.abs(v)>=100 ? Math.round(v).toLocaleString("ja-JP") : (Math.round(v*10)/10).toLocaleString("ja-JP"));
+
+document.getElementById("toggleView").addEventListener("click", e=>{
+  const cond = e.target.dataset.state!=="condensed";
+  loadData(cond);
+  e.target.dataset.state = cond?"condensed":"full";
+  e.target.textContent = cond?"全表示":"折畳表示";
+});
+
+// ページ読込時に自動読込（デフォルト設定：太初→神、3倍）
+window.addEventListener("DOMContentLoaded", ()=>loadData());
+</script>
 </body>
 </html>
