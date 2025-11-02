@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <title>ラッキー傭兵団 マッチリソースシミュレーター</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card" id="sim-wrapper">
+      <div class="controls controls-compact">
+        <div class="row">
+          <label class="label">難易度（1〜5試合目）</label>
+          <select id="diff_front" class="select">
+            <option>太初</option><option>神</option><option>地獄</option><option>ハード</option><option>ノーマル</option>
+          </select>
+        </div>
+        <div class="row">
+          <label class="label">難易度（6〜25試合目）</label>
+          <select id="diff_back" class="select">
+            <option>太初</option><option>神</option><option>地獄</option><option>ハード</option><option>ノーマル</option>
+          </select>
+        </div>
+        <div class="row energy-row">
+          <label class="switch small">
+            <input id="energy_toggle" type="checkbox" aria-label="エネ倍数パケ"/>
+            <span class="slider"></span>
+          </label>
+          <span id="energy_label" class="energy-text">（現在）エネ倍数パケ未購入</span>
+        </div>
+        <div class="toolbar">
+          <div class="toggle">
+            <span>小数</span>
+            <label class="switch xsmall">
+              <input id="switch_round" type="checkbox" aria-label="整数表示"/>
+              <span class="slider"></span>
+            </label>
+            <span>整数</span>
+          </div>
+          <span class="sep">·</span>
+          <div class="toggle">
+            <span>全表示</span>
+            <label class="switch xsmall">
+              <input id="switch_condensed" type="checkbox" aria-label="折り畳み表示"/>
+              <span class="slider"></span>
+            </label>
+            <span>折り畳み</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">※獲得した招待状はユニット募集に使用し、そこで得られるリソースを表中のゴールド、神話石、ダイヤに加算した状態です。</p>
+
+      <div class="table-wrap" role="region" aria-label="結果表">
+        <table id="table">
+          <thead>
+            <tr>
+              <th>試合</th>
+              <th><img class="icon" src="https://menbold.github.io/LD_Field/i_01_gold.png" alt="Gold"/></th>
+              <th><img class="icon" src="https://menbold.github.io/LD_Field/i_02_key.png" alt="Key"/></th>
+              <th><img class="icon" src="https://menbold.github.io/LD_Field/i_03_chur.png" alt="Churu"/></th>
+              <th><img class="icon" src="https://menbold.github.io/LD_Field/i_04_battery.png" alt="Battery"/></th>
+              <th><img class="icon" src="https://menbold.github.io/LD_Field/i_05_petfood.png" alt="PetFood"/></th>
+              <th><img class="icon" src="https://menbold.github.io/LD_Field/i_06_Mythstone.png" alt="Mythstone"/></th>
+              <th><img class="icon" src="https://menbold.github.io/LD_Field/i_07_immotalstone.png" alt="Immortal"/></th>
+              <th><img class="icon" src="https://menbold.github.io/LD_Field/i_08_dia.png" alt="Dia"/></th>
+              <th><img class="icon" src="https://menbold.github.io/LD_Field/i_09_Scroll.png" alt="Scroll"/></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

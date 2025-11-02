@@ -1,0 +1,389 @@
+:root {
+  --bg:#0b0c10; --fg:#e6ebf5; --card:#151821;
+  --border:#2a3144; --muted:#9aa3b2; --accent:#7cc2ff;
+  --row-h: 26px; --header-h: 28px;
+  --ctrl-text:13px; --toggle-text:13px;
+  --diff-taisho: rgba(90,160,255,.08);
+  --diff-kami:   rgba(170,120,255,.08);
+  --diff-jigoku: rgba(255,110,120,.08);
+  --diff-hard:   rgba(255,190,110,.08);
+  --diff-normal: rgba(110,220,160,.08);
+}
+body{ margin:0; background:linear-gradient(160deg,#0b0c10,#0f1117); color:var(--fg); font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial; }
+.wrap { max-width:1100px; margin:0 auto; padding:20px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 10px 28px rgba(0,0,0,.35); }
+
+.controls{ display:grid; grid-template-columns:1fr; gap:12px; }
+.ctrl{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+.ctrl .label{ font-size: var(--ctrl-text); line-height:1.3; white-space:nowrap }
+.select{ width:100%; font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0f1320; color:var(--fg) }
+
+/* Energy: toggle left, text right on same line */
+.ctrl.energy{ flex-direction:row; align-items:center; gap:10px; }
+.ctrl.energy .switch{ flex:0 0 auto }
+.ctrl.energy .label{ flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+
+/* Switch (compact) */
+.switch{ position:relative; display:inline-flex; align-items:center }
+.switch input{ appearance:none; width:0; height:0; opacity:0; position:absolute }
+.switch .slider{ width:36px; height:20px; border-radius:999px; background:#0f1320; border:1px solid var(--border); position:relative; transition:all .2s ease }
+.switch .slider::after{ content:""; position:absolute; top:50%; left:3px; transform:translateY(-50%); width:14px; height:14px; background:#d9e6ff; border-radius:50%; transition:all .2s ease }
+.switch input:checked + .slider{ background:#173153; border-color:#275d8b }
+.switch input:checked + .slider::after{ left:19px }
+
+/* Toggles: visually separated rows */
+.toggles{ display:flex; flex-direction:column; gap:10px; margin-top:6px; align-items:flex-start }
+.toggle-row{ display:flex; align-items:center; justify-content:flex-start; gap:10px; padding:6px 12px; background:transparent; border:none; border-radius:0 }
+.toggle-text{ font-size: var(--toggle-text); color:var(--muted); white-space:nowrap; writing-mode:horizontal-tb }
+
+.note{ margin:6px 0 8px; color:var(--muted); font-size:12px }
+
+/* Table wrapper: no frame, horizontal+vertical scroll */
+.table-wrap{ overflow:auto; background:transparent; border:0; max-height: calc(var(--header-h) + var(--row-h) * 8); }
+table{ min-width:500px;  border-collapse:separate; border-spacing:0; min-width:500px; width:100%; table-layout: fixed }
+thead th{ position:sticky; top:0; height:var(--header-h); background:#121828; color:#cfe0ff; font-size:11px; padding:3px 6px; text-align:center; z-index:6 }
+tbody td{ height:var(--row-h); padding:6px 8px; border-bottom:1px solid rgba(255,255,255,.06); text-align:right; font-size:12px; font-feature-settings:"tnum" 1; }
+tbody tr:hover{ background:rgba(255,255,255,.03) }
+ .icon{ width:14px; height:14px; display:block; margin:auto }
+
+/* Difficulty tint */
+
+/* First column sticky (header+cells) and centered */
+#table tbody td:first-child{ position:sticky; left:0; z-index:10; text-align:center; background: var(--row-bg, #121828); border-right:1px solid rgba(255,255,255,.10) }
+#table thead th:first-child{ position:sticky; left:0; z-index:20; background:#121828 }
+
+/* Mobile */
+@media (max-width:430px){
+  .ctrl .label{ font-size:13px }
+  .toggle-text{ font-size:13px }
+}
+
+/* Sticky first column + frame */
+#table thead th:first-child{ position:sticky; left:0; z-index:20; background:#121828 }
+#table tbody td:first-child{ position:sticky; left:0; z-index:10; text-align:center; background: var(--row-bg, #121828); border-right:1px solid rgba(255,255,255,.10) }
+/* Ensure the sticky cell has the same tint as the row */
+tbody tr[data-diff="太初"]     td:first-child{ background: var(--diff-taisho) }
+tbody tr[data-diff="神"]       td:first-child{ background: var(--diff-kami) }
+tbody tr[data-diff="地獄"]     td:first-child{ background: var(--diff-jigoku) }
+tbody tr[data-diff="ハード"]   td:first-child{ background: var(--diff-hard) }
+tbody tr[data-diff="ノーマル"] td:first-child{ background: var(--diff-normal) }
+/* Column widths */
+#table th:first-child, #table td:first-child{ width:32px !important; min-width:500px !important; max-width:32px !important; text-align:center }
+
+
+/* --- Sticky first column using overlay (prevents bleed-through when scrolling) --- */
+.table-wrap{ position: relative; }
+
+/* Header cell "試合" */
+#table thead th:first-child{ position:sticky; left:0; z-index:20; background:#121828 }
+#table thead th:first-child::before{
+  content:""; position:absolute; inset:0;
+  background:#121828; /* header solid bg */
+  border-right:1px solid rgba(255,255,255,.10);
+  z-index:-1;
+}
+
+/* Body cells for first column */
+#table tbody td:first-child{ position:sticky; left:0; z-index:10; text-align:center; background: var(--row-bg, #121828); border-right:1px solid rgba(255,255,255,.10) }
+
+/* Ensure first column width is fixed and compact */
+#table th:first-child, #table td:first-child{ width:32px !important; min-width:500px !important; max-width:32px !important; text-align:center }
+
+/* Tighten other columns a bit */
+#table td{ overflow:hidden; text-overflow:ellipsis; }
+
+/* Keep toggle rows plain & left aligned (no accidental overrides) */
+.toggles{ align-items:flex-start; }
+.toggle-row{ background:transparent !important; border:none !important; justify-content:flex-start !important; }
+
+
+/* Row tint on <tr> with a CSS variable for reuse */
+tbody tr[data-diff="太初"]     { --row-bg: var(--diff-taisho);   background: var(--row-bg); }
+tbody tr[data-diff="神"]       { --row-bg: var(--diff-kami);     background: var(--row-bg); }
+tbody tr[data-diff="地獄"]     { --row-bg: var(--diff-jigoku);   background: var(--row-bg); }
+tbody tr[data-diff="ハード"]   { --row-bg: var(--diff-hard);     background: var(--row-bg); }
+tbody tr[data-diff="ノーマル"] { --row-bg: var(--diff-normal);   background: var(--row-bg); }
+
+/* Table cells transparent so row's background shows uniformly */
+#table tbody td{ background: transparent; }
+
+
+/* Sticky first column overlay paints with row color; ensure stacking above scrolled cells */
+#table tbody td:first-child{ position:sticky; left:0; z-index:10; text-align:center; background: var(--row-bg, #121828); border-right:1px solid rgba(255,255,255,.10) }
+
+
+/* --- Opaque background for sticky first column using color-mix --- */
+:root{
+  --table-base: #121828; /* table base used for mixing (opaque) */
+}
+
+/* Row tint (still applied to whole row) */
+tbody tr[data-diff]{ background: var(--row-bg); }
+
+/* Sticky first column paints an OPAQUE approximation of the row tint */
+#table tbody td:first-child{
+  background: color-mix(in srgb, var(--table-base) 88%, var(--row-bg, var(--table-base)) 12%) !important;
+  /* keep frame */
+  border-right:1px solid rgba(255,255,255,.10);
+}
+
+
+/* Narrow column widths so Mythstoneまで視認可 */
+#table th:nth-child(2), #table td:nth-child(2){ width:72px; min-width:500px; max-width:72px; } /* gold */
+#table th:nth-child(3), #table td:nth-child(3){ width:64px; min-width:500px; max-width:64px; } /* key */
+#table th:nth-child(4), #table td:nth-child(4){ width:64px; min-width:500px; max-width:64px; } /* churu */
+#table th:nth-child(5), #table td:nth-child(5){ width:64px; min-width:500px; max-width:64px; } /* battery */
+#table th:nth-child(6), #table td:nth-child(6){ width:64px; min-width:500px; max-width:64px; } /* petfood */
+#table th:nth-child(7), #table td:nth-child(7){ width:64px; min-width:500px; max-width:64px; } /* mythstone */
+
+
+/* Ultra-compact widths */
+#table th:nth-child(2), #table td:nth-child(2){ width:66px; min-width:500px; max-width:66px; } /* gold */
+#table th:nth-child(3), #table td:nth-child(3){ width:58px; min-width:500px; max-width:58px; } /* key */
+#table th:nth-child(4), #table td:nth-child(4){ width:58px; min-width:500px; max-width:58px; } /* churu */
+#table th:nth-child(5), #table td:nth-child(5){ width:58px; min-width:500px; max-width:58px; } /* battery */
+#table th:nth-child(6), #table td:nth-child(6){ width:58px; min-width:500px; max-width:58px; } /* petfood */
+#table th:nth-child(7), #table td:nth-child(7){ width:58px; min-width:500px; max-width:58px; } /* mythstone */
+
+
+/* === FINAL OVERRIDES: compact table & solid sticky first column === */
+
+/* Opaque tints for sticky first column */
+:root{
+  --row-base: #121828;
+  --diff-taisho-solid: #1b2a3f;   /* tune as needed */
+  --diff-kami-solid:   #2a2142;
+  --diff-jigoku-solid: #3a2126;
+  --diff-hard-solid:   #3a2d1d;
+  --diff-normal-solid: #1f362b;
+}
+
+/* Make table ultra compact */
+:root{ --row-h: 26px; --header-h: 28px; }
+
+/* Header */
+#table thead th{
+  padding:2px 5px;
+  font-size:11px;
+  height: var(--header-h) !important;
+}
+
+/* Body cells */
+#table tbody td{
+  padding:2px 5px;
+  font-size:11px;
+  line-height: 1.2 !important;
+  position: relative; z-index:0; background: transparent;
+  white-space: nowrap;
+}
+
+/* Icons */
+.icon{ width:14px; height:14px; display:block; margin:auto }
+
+/* Column widths (fit up to Mythstone) */
+#table th:first-child, #table td:first-child{ width:32px !important; min-width:500px !important; max-width:32px !important; text-align:center }
+#table th:nth-child(2), #table td:nth-child(2){ width: 60px !important; min-width:500px !important; max-width:60px !important; } /* gold */
+#table th:nth-child(3), #table td:nth-child(3),
+#table th:nth-child(4), #table td:nth-child(4),
+#table th:nth-child(5), #table td:nth-child(5),
+#table th:nth-child(6), #table td:nth-child(6),
+#table th:nth-child(7), #table td:nth-child(7){
+  width: 52px !important; min-width:500px !important; max-width:52px !important;
+}
+
+/* Table width */
+table{ min-width:500px;  min-width:500px !important; table-layout: fixed !important; }
+
+/* Sticky first column: solid background (no bleed-through) */
+#table tbody tr[data-diff="太初"]     td:first-child{ background: var(--diff-taisho-solid) !important; }
+#table tbody tr[data-diff="神"]       td:first-child{ background: var(--diff-kami-solid)   !important; }
+#table tbody tr[data-diff="地獄"]     td:first-child{ background: var(--diff-jigoku-solid) !important; }
+#table tbody tr[data-diff="ハード"]   td:first-child{ background: var(--diff-hard-solid)   !important; }
+#table tbody tr[data-diff="ノーマル"] td:first-child{ background: var(--diff-normal-solid) !important; }
+
+#table tbody td:first-child{
+  position: sticky !important; left:0 !important; z-index: 10 !important;
+  border-right: 1px solid rgba(255,255,255,.08) !important;
+}
+
+/* Header first col sticky */
+#table thead th:first-child{
+  position: sticky !important; left:0 !important; z-index: 20 !important;
+  background: #121828 !important; border-right: 1px solid rgba(255,255,255,.10) !important;
+}
+
+/* Visible area: header + 8 rows */
+.table-wrap{ max-height: calc(var(--header-h) + var(--row-h) * 8) !important; }
+
+/* Toggles: no background, left aligned */
+.toggles{ align-items: flex-start !important; }
+.toggle-row{ background: transparent !important; border: none !important; justify-content: flex-start !important; }
+
+/* classic cell borders */
+#table th, #table td{ border:1px solid var(--border) }
+
+/* reset forced widths on columns 2..10 to auto (override earlier !important rules) */
+#table th:nth-child(n+2), #table td:nth-child(n+2){ width:auto !important; min-width:unset !important; max-width:none !important; }
+
+
+/* ==== HARD COMPACT OVERRIDE (reference-like) ==== */
+:root{ --row-h: 28px !important; --header-h: 30px !important; }
+
+/* Typography & padding */
+#table thead th{
+  font-size:11px;
+  padding:2px 5px;
+  height: var(--header-h) !important;
+  line-height: 1.2 !important;
+}
+#table tbody td{
+  font-size:11px;
+  padding:2px 5px;
+  height: var(--row-h) !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+/* Icons */
+.icon{ width:14px; height:14px; display:block; margin:auto }
+
+/* Borders (subtle like reference) */
+#table th, #table td{ border: 1px solid rgba(255,255,255,.08) !important; }
+tbody td{ border-bottom: 1px solid rgba(255,255,255,.08) !important; }
+
+/* Column sizing: auto for 2+; compact fixed for first col */
+#table th:first-child, #table td:first-child{ width:32px !important; min-width:500px !important; max-width:32px !important; text-align:center }
+#table th:nth-child(n+2), #table td:nth-child(n+2){ width: auto !important; min-width: 0 !important; max-width: none !important; }
+
+/* Table base */
+table{ min-width:500px;  min-width:500px !important; table-layout: fixed !important; }
+
+/* Viewport = header + 8 rows */
+.table-wrap{ max-height: calc(var(--header-h) + var(--row-h) * 8) !important; }
+
+/* Keep sticky col solid (no bleed) */
+#table thead th:first-child{ position: sticky !important; left:0 !important; z-index:20 !important; background:#121828 !important; }
+#table tbody td:first-child{
+  position: sticky !important; left:0 !important; z-index: 10 !important;
+  background: #162030 !important; /* opaque compact tint */
+  border-right: 1px solid rgba(255,255,255,.10) !important;
+}
+
+
+/* compact column widths to expose up to Mythstone */
+#table th:nth-child(2), #table td:nth-child(2){ width:56px !important; min-width:500px !important; max-width:56px !important; } /* gold */
+#table th:nth-child(3), #table td:nth-child(3){ width:48px !important; min-width:500px !important; max-width:48px !important; } /* key */
+#table th:nth-child(4), #table td:nth-child(4){ width:48px !important; min-width:500px !important; max-width:48px !important; } /* churu */
+#table th:nth-child(5), #table td:nth-child(5){ width:48px !important; min-width:500px !important; max-width:48px !important; } /* battery */
+#table th:nth-child(6), #table td:nth-child(6){ width:48px !important; min-width:500px !important; max-width:48px !important; } /* petfood */
+#table th:nth-child(7), #table td:nth-child(7){ width:48px !important; min-width:500px !important; max-width:48px !important; } /* mythstone */
+
+
+#table th:nth-child(3), #table td:nth-child(3){ width:44px !important; min-width:500px !important; max-width:44px !important; }
+
+#table th:nth-child(4), #table td:nth-child(4){ width:44px !important; min-width:500px !important; max-width:44px !important; }
+
+#table th:nth-child(5), #table td:nth-child(5){ width:44px !important; min-width:500px !important; max-width:44px !important; }
+
+#table th:nth-child(6), #table td:nth-child(6){ width:44px !important; min-width:500px !important; max-width:44px !important; }
+
+#table th:nth-child(7), #table td:nth-child(7){ width:44px !important; min-width:500px !important; max-width:44px !important; }
+
+#table th:nth-child(2), #table td:nth-child(2){ width:52px !important; min-width:500px !important; max-width:52px !important; }
+/* ===== REVERT TO REFERENCE TABLE LOOK ===== */
+/* （列幅の個別指定や !important を無効化） */
+#table th:nth-child(n), #table td:nth-child(n){ width:auto !important; min-width:0 !important; max-width:none !important; }
+
+/* 参照ファイル準拠の表スタイル */
+.table-wrap{ overflow-x:auto; max-width:100%; }
+#table{ width:100%; border-collapse:collapse; font-size:13px; text-align:right; table-layout:auto; }
+
+#table th, #table td{
+  border:1px solid var(--border);
+  padding:6px 8px;
+  vertical-align:middle;
+}
+
+/* ヘッダ */
+#table thead th{
+  background:#1a1d26;
+  color:var(--muted);
+  position:sticky;
+  top:0;
+  z-index:2;
+  text-align:center;
+  border-bottom:1px solid rgba(255,255,255,.16);
+}
+
+/* 1列目の固定（不透明背景で透け防止：参照ファイルと同じ色） */
+#table thead th:first-child,
+#table tbody td:first-child{
+  position:sticky;
+  left:0;
+  background:#151821; /* solid */
+  text-align:center;
+}
+#table thead th:first-child{ z-index:4; }
+#table tbody td:first-child{ z-index:3; }
+
+/* アイコン */
+.icon{ width:20px; height:20px; display:block; margin:auto; }
+
+/* 参照ファイルの難易度チント（同トーン） */
+#table tbody tr[data-diff="ノーマル"]:nth-child(odd){  background-color:#80b95c20; }
+#table tbody tr[data-diff="ノーマル"]:nth-child(even){ background-color:#5f934320; }
+#table tbody tr[data-diff="ハード"]:nth-child(odd){    background-color:#b86a5820; }
+#table tbody tr[data-diff="ハード"]:nth-child(even){   background-color:#934b3a20; }
+#table tbody tr[data-diff="地獄"]:nth-child(odd){      background-color:#c88f6620; }
+#table tbody tr[data-diff="地獄"]:nth-child(even){     background-color:#a06a4620; }
+#table tbody tr[data-diff="神"]:nth-child(odd){        background-color:#8a73b920; }
+#table tbody tr[data-diff="神"]:nth-child(even){       background-color:#6a549620; }
+#table tbody tr[data-diff="太初"]:nth-child(odd){      background-color:#f3d88820; }
+#table tbody tr[data-diff="太初"]:nth-child(even){     background-color:#c9b06620; }
+
+/* === column width tweaks (append at the very end) === */
+/* 既存の min-width:500px 等を打ち消す */
+#table th, #table td { min-width: initial !important; }
+
+/* 試合（1列目）をさらに狭く */
+#table th:first-child,
+#table td:first-child {
+  width: 25px !important;
+  min-width: 25px !important;
+  max-width: 25px !important;
+}
+
+/* ゴールド（2列目）を広めに */
+#table th:nth-child(2),
+#table td:nth-child(2) {
+  width: 50px !important;
+  min-width: 50px !important;
+  max-width: 50px !important;
+}
+
+/* 招待状（最終列＝10列目）を広めに */
+#table th:nth-child(10),
+#table td:nth-child(10) {
+  width: 45px !important;
+  min-width: 45px !important;
+  max-width: 45px !important;
+}
+
+
+/* ===== Compact Controls (ideal mock) ===== */
+.controls-compact{ display:flex; flex-direction:column; gap:10px; margin-bottom:8px }
+.controls-compact .row{ display:flex; align-items:center; gap:10px }
+.controls-compact .row .label{ flex:0 0 auto; font-size:13px; color:var(--fg) }
+.controls-compact .row .select{ flex:1 1 auto; }
+
+.energy-row{ gap:8px }
+.energy-text{ font-size:13px; color:var(--fg) }
+
+.toolbar{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:2px }
+.toolbar .toggle{ display:flex; align-items:center; gap:6px; color:var(--muted); font-size:13px }
+.toolbar .sep{ opacity:.6 }
+
+/* Smaller toggle size for toolbar */
+.switch.xsmall .slider{ width:34px; height:18px }
+.switch.xsmall .slider::after{ width:12px; height:12px; left:3px }
+.switch.xsmall input:checked + .slider::after{ left:19px }
