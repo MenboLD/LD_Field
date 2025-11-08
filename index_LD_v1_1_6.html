@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja" data-ld-version="v1.1.6">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+  <title>LD リソース表</title>
+  <meta name="theme-color" content="#0b0c10"/>
+  <link rel="stylesheet" href="./styles_v1_1_4.css"/>
+  <!-- build: v1.1.6 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    window.LD_SUPABASE_URL='https://cxgbloauhimuhdjlvwvh.supabase.co';
+    window.LD_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4Z2Jsb2F1aGltdWhkamx2d3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4NDQ1MDIsImV4cCI6MjA3NjQyMDUwMn0.wnRHKccWAba4wzC1XHqYPdzL0wF5uQOImbLkn4rs6SA';
+  </script>
+</head>
+<body>
+  <main class="wrap">
+    <div id="ld-error" class="ld-error" style="display:none">
+      <strong>エラー:</strong> <span id="ld-error-msg"></span>
+    </div>
+
+    <!-- Card #1: マッチリソース -->
+    
+  <div class="fold-head" data-target="#match_card" role="button" aria-expanded="true" tabindex="0">▼ バトルリソース</div>
+<section class="card" id="match_card">
+      <div class="conditions" role="form" aria-label="条件の設定">
+        <div class="row">
+          <label for="diff_front" class="label">難易度（1〜5試合目）</label>
+          <select id="diff_front" class="select">
+            <option>太初</option><option>神</option><option>地獄</option><option>ハード</option><option>ノーマル</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="diff_back" class="label">難易度（6〜25試合目）</label>
+          <select id="diff_back" class="select">
+            <option>太初</option><option>神</option><option>地獄</option><option>ハード</option><option>ノーマル</option>
+          </select>
+        </div>
+
+        <div class="toggle-row">
+          <label class="switch xsmall">
+            <input id="energy_toggle" type="checkbox" aria-label="エネ倍率（x1/x3）"/>
+            <span class="slider" aria-hidden="true"></span>
+          </label>
+          <span class="toggle-label"><span class="title">エネ倍率：</span><span id="energy_value" class="value">x3</span></span>
+        </div>
+      </div>
+
+      <div class="display-block" role="group" aria-label="表示の設定">
+        <div class="toggle-row" aria-label="数値（小数/整数）">
+          <label class="switch xsmall">
+            <input id="switch_round" type="checkbox" aria-label="整数表示"/>
+            <span class="slider" aria-hidden="true"></span>
+          </label>
+          <span class="toggle-label"><span class="title">数値：</span><span id="number_value" class="value">整数</span></span>
+        </div>
+        <div class="toggle-row" aria-label="行表示（全行/5の倍数）">
+          <label class="switch xsmall">
+            <input id="switch_condensed" type="checkbox" aria-label="5の倍数のみ表示"/>
+            <span class="slider" aria-hidden="true"></span>
+          </label>
+          <span class="toggle-label"><span class="title">行表示：</span><span id="rows_value" class="value">全行</span></span>
+        </div>
+      </div>
+
+      <div class="table-wrap" role="region" aria-label="結果表" aria-live="polite">
+        <table id="table">
+          <colgroup>
+            <col class="col-1-match"/>
+            <col class="col-2-gold"/>
+            <col class="col-3-key"/>
+            <col class="col-4-churu"/>
+            <col class="col-5-battery"/>
+            <col class="col-6-petfood"/>
+            <col class="col-7-myth"/>
+            <col class="col-8-immortal"/>
+            <col class="col-9-dia"/>
+            <col class="col-10-invite"/>
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">試合</th>
+              <th scope="col"><img class="icon" src="https://menbold.github.io/LD_Field/i_01_gold.png" alt="ゴールド"/></th>
+              <th scope="col"><img class="icon" src="https://menbold.github.io/LD_Field/i_02_key.png" alt="鍵"/></th>
+              <th scope="col"><img class="icon" src="https://menbold.github.io/LD_Field/i_03_chur.png" alt="チュール"/></th>
+              <th scope="col"><img class="icon" src="https://menbold.github.io/LD_Field/i_04_battery.png" alt="バッテリー"/></th>
+              <th scope="col"><img class="icon" src="https://menbold.github.io/LD_Field/i_05_petfood.png" alt="ペットフード"/></th>
+              <th scope="col"><img class="icon" src="https://menbold.github.io/LD_Field/i_06_Mythstone.png" alt="神話石"/></th>
+              <th scope="col"><img class="icon" src="https://menbold.github.io/LD_Field/i_07_immotalstone.png" alt="不滅石"/></th>
+              <th scope="col"><img class="icon" src="https://menbold.github.io/LD_Field/i_08_dia.png" alt="ダイヤ"/></th>
+              <th scope="col"><img class="icon" src="https://menbold.github.io/LD_Field/i_09_Scroll.png" alt="招待状"/></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Card #2: ショップ（ネット表示のみ） -->
+    
+  <div class="fold-head" data-target="#shop_card" role="button" aria-expanded="true" tabindex="0">▼ ショップリソース</div>
+<section class="card" id="shop_card">
+      <div class="ld-summary" aria-label="合計サマリー">
+        <div class="ld-net">
+          <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_01_gold.png" alt="ゴールド"/><span id="sum_gold">0</span></div>
+          <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_08_dia.png" alt="ダイヤ"/><span id="sum_dia">0</span></div>
+          <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_02_key.png" alt="鍵"/><span id="sum_key">0</span></div>
+          <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_03_chur.png" alt="チュール"/><span id="sum_churu">0</span></div>
+          <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_04_battery.png" alt="バッテリー"/><span id="sum_battery">0</span></div>
+          <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_05_petfood.png" alt="ペットフード"/><span id="sum_petfood">0</span></div>
+          <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_06_Mythstone.png" alt="神話石"/><span id="sum_myth">0</span></div>
+          <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_09_Scroll.png" alt="招待状"/><span id="sum_invite">(0)</span></div>
+          <div class="ld-artifact-ctrl" aria-label="遺物の選択数">
+            <img class="icon" src="https://menbold.github.io/LD_Field/i_10_Artifact.png" alt="遺物"/>
+            <button id="art_plus5"  class="mini" type="button">+5</button>
+            <button id="art_plus1"  class="mini" type="button">+1</button>
+            <span id="art_label" class="ratio">0/31</span>
+            <button id="art_minus1" class="mini" type="button">-1</button>
+            <button id="art_minus5" class="mini" type="button">-5</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap" role="region" aria-label="ショップ結果表" aria-live="polite">
+        <table id="shop_table">
+          <thead>
+            <tr>
+              <th scope="col" class="w-check">選択</th>
+              <th scope="col">商品</th>
+              <th scope="col">数量</th>
+              <th scope="col">価格</th>
+              <th scope="col">通貨</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  
+  <!-- Card #3: フリーリソース（日割） -->
+  
+  <div class="fold-head" data-target="#free_card" role="button" aria-expanded="true" tabindex="0">▼ 無料リソース</div>
+<section class="card" id="free_card">
+    <div class="ld-summary" aria-label="フリー合計">
+      <div class="ld-net">
+        <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_01_gold.png" alt="ゴールド"><span id="free_gold">0</span></div>
+        <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_08_dia.png" alt="ダイヤ"><span id="free_dia">0</span></div>
+        <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_02_key.png" alt="鍵"><span id="free_key">0.0</span></div>
+        <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_04_battery.png" alt="バッテリー"><span id="free_battery">0.0</span></div>
+        <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_05_petfood.png" alt="ペットフード"><span id="free_petfood">0.0</span></div>
+        <div class="ld-chip"><img class="icon" src="https://menbold.github.io/LD_Field/i_09_Scroll.png" alt="招待状"><span id="free_invite">0</span></div>
+      </div>
+    </div>
+
+    <div class="free-controls">
+      <label class="switch switch-mini"><input id="free_fmt_int" type="checkbox" checked><span class="slider"></span></label>
+      <span class="lab">数値：</span><span id="free_lab_fmt">整数</span>
+    </div>
+
+    <div class="table-wrap" role="region" aria-label="フリーリソース表" aria-live="polite">
+      <table id="free_table">
+        <thead>
+          <tr>
+            <th class="w-check">選択</th>
+            <th>名前</th>
+            <th>リソース</th>
+            <th>期間</th>
+            <th>日割</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="free_empty" style="display:none; color:var(--muted); font-size:12px; padding:8px;">データがありません</div>
+    </div>
+  </section>
+
+</main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./app_v1_1_6.js"></script>
+</body>
+</html>
