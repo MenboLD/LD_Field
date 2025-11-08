@@ -1,0 +1,229 @@
+:root {
+  --bg:#0b0c10; --fg:#e6ebf5; --card:#151821;
+  --border:#2a3144; --muted:#9aa3b2; --accent:#7cc2ff;
+  --row-h:28px; --header-h:30px;
+  --w-match: 27px;  --w-gold: 68px; --w-small: 38px; --w-mid: 42px; --w-inv: 69px;
+}
+*{box-sizing:border-box}
+body{ margin:0; background:linear-gradient(160deg,#0b0c10,#0f1117); color:var(--fg); font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial; }
+.wrap{ max-width:1100px; margin:0 auto; padding:20px }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 10px 28px rgba(0,0,0,.35) }
+.card + .card{ margin-top:16px }
+
+.ld-error{ background:#3b1d1d; color:#ffdede; border:1px solid #a44; padding:8px 10px; border-radius:8px; margin:0 0 10px }
+
+.conditions{ display:flex; flex-direction:column; gap:10px; margin-bottom:8px }
+.row{ display:flex; align-items:center; gap:10px }
+.label{ flex:0 0 auto; font-size:13px }
+.select{ flex:1 1 auto; width:100%; font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#0f1320; color:var(--fg) }
+
+.toggle-row{ display:flex; align-items:center; gap:8px }
+.toggle-label{ font-size:13px; color:var(--fg) }
+.toggle-label .title{ color:var(--fg); opacity:.85; margin-right:2px }
+.toggle-label .value{ color:#cfe0ff; font-weight:600 }
+.display-block{ display:flex; flex-direction:column; gap:8px; margin:2px 0 8px }
+
+.switch{ position:relative; display:inline-flex; align-items:center }
+.switch input{ appearance:none; width:0; height:0; opacity:0; position:absolute }
+.switch .slider{ width:34px; height:18px; border-radius:999px; background:#0f1320; border:1px solid var(--border); position:relative; transition:all .2s ease }
+.switch .slider::after{ content:""; position:absolute; top:50%; left:3px; transform:translateY(-50%); width:12px; height:12px; background:#d9e6ff; border-radius:50%; transition:all .2s ease }
+.switch input:checked + .slider{ background:#173153; border-color:#275d8b }
+.switch input:checked + .slider::after{ left:19px }
+
+.table-wrap{ overflow:auto; overflow-x:auto; background:transparent; border:0; max-height: calc(var(--header-h) + var(--row-h) * 8); position:relative }
+table{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed }
+thead th{ position:sticky; top:0; height:var(--header-h); background:#121828; color:#cfe0ff; font-size:11px; padding:2px 5px; text-align:center; z-index:6 }
+tbody td{ height:var(--row-h); padding:2px 5px; border-bottom:1px solid rgba(255,255,255,.08); text-align:right; font-size:11px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+tbody tr:hover{ background:rgba(255,255,255,.03) }
+.icon{ width:16px; height:16px; display:inline-block; vertical-align:middle }
+
+#table thead th:first-child, #table tbody td:first-child{
+  position:sticky; left:0; text-align:center;
+  border-right:1px solid rgba(255,255,255,.10); z-index:10;
+  width:var(--w-match); min-width:var(--w-match); max-width:var(--w-match)
+}
+#table tbody td:first-child{ background: inherit; }
+#table thead th:first-child{ background:#121828; z-index:30; left:0; top:0 }
+#table col.col-1-match{ width: var(--w-match) } #table col.col-2-gold{ width: var(--w-gold) }
+#table col.col-3-key,#table col.col-4-churu,#table col.col-5-battery,#table col.col-6-petfood{ width: var(--w-small) }
+#table col.col-7-myth{ width: var(--w-mid) } #table col.col-8-immortal{ width: var(--w-small) } #table col.col-9-dia{ width: var(--w-mid) } #table col.col-10-invite{ width: var(--w-inv) }
+
+/* NET chip row */
+.ld-summary{ display:flex; flex-direction:column; gap:8px; margin-bottom:8px }
+.ld-net{ display:flex; flex-wrap:wrap; gap:10px }
+.ld-chip{ display:inline-flex; align-items:center; gap:6px; background:#0f1320; border:1px solid var(--border); padding:6px 8px; border-radius:8px }
+.ld-chip .icon{ display:inline-block; margin:0 }
+.ld-chip span{ display:inline-block; text-align:right; font-weight:700; font-size:13px }
+.neg{ color:#ff6b6b }
+
+/* Shop table */
+#shop_table .w-check{ width:44px; min-width:44px }
+#shop_table th:nth-child(2), #shop_table td:nth-child(2){ min-width: 120px; text-align:center }
+#shop_table th:nth-child(3), #shop_table td:nth-child(3){ min-width: 72px }
+#shop_table th:nth-child(4), #shop_table td:nth-child(4){ min-width: 90px }
+#shop_table th:nth-child(5), #shop_table td:nth-child(5){ min-width: 64px }
+#shop_table th:nth-child(1), #shop_table td:nth-child(1), #shop_table th:nth-child(5), #shop_table td:nth-child(5){ text-align:center }
+#shop_table td{text-align:right} #shop_table td.item{ text-align:center }
+#shop_table .item-wrap{ display:flex; align-items:center; justify-content:center; gap:6px } #shop_table .item-wrap .name{ display:none }
+#shop_table .expander{ width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:8px; background:#0f1320; color:#cfe0ff; font-weight:700; font-size:14px; line-height:1; cursor:pointer; padding:0; margin-left:6px }
+
+/* Currency tint + zebra */
+#shop_table tbody tr.cur-gold{ background-color: rgba(255, 225, 120, 0.10) }
+#shop_table tbody tr.cur-gold:nth-child(even){ background-color: rgba(255, 225, 120, 0.14) }
+#shop_table tbody tr.cur-dia{ background-color: rgba(120, 200, 255, 0.10) }
+#shop_table tbody tr.cur-dia:nth-child(even){ background-color: rgba(120, 200, 255, 0.14) }
+#shop_table tbody tr.cur-gold:hover{ background-color: rgba(255, 225, 120, 0.18) }
+#shop_table tbody tr.cur-dia:hover{ background-color: rgba(120, 200, 255, 0.18) }
+
+#shop_table tr.child-row{ background:rgba(255,255,255,.02) }
+#shop_table tr.child-row td{ font-size:11px }
+#shop_table tr.child-row td.item{ padding-left:24px }
+
+@media (max-width:380px){
+  .toggle-label{ font-size:12px }
+  .switch .slider{ width:30px; height:16px }
+  .switch .slider::after{ width:10px; height:10px; left:3px }
+  .switch input:checked + .slider::after{ left:17px }
+}
+@media (max-width:430px){
+  .label{ font-size:13px }
+}
+
+
+/* v1.0.24 reinforce currency tint for shop rows */
+#shop_card #shop_table tbody tr.cur-gold{ background-color: rgba(255,225,120,0.10) !important; }
+#shop_card #shop_table tbody tr.cur-gold:nth-child(even){ background-color: rgba(255,225,120,0.14) !important; }
+#shop_card #shop_table tbody tr.cur-dia{ background-color: rgba(120,200,255,0.10) !important; }
+#shop_card #shop_table tbody tr.cur-dia:nth-child(even){ background-color: rgba(120,200,255,0.14) !important; }
+#shop_card #shop_table tbody tr.cur-gold:hover{ background-color: rgba(255,225,120,0.18) !important; }
+#shop_card #shop_table tbody tr.cur-dia:hover{ background-color: rgba(120,200,255,0.18) !important; }
+
+
+/* Zebra stripes for match table rows */
+#table tbody tr:nth-child(odd){ background-color: rgba(255,255,255,0.02) }
+#table tbody tr:nth-child(even){ background-color: rgba(255,255,255,0.045) }
+#table tbody tr:hover{ background-color: rgba(255,255,255,0.08) }
+
+/* Artifact m/31 control */
+.ld-artifact-ctrl{ display:inline-flex; align-items:center; gap:6px; background:#0f1320; border:1px solid var(--border); padding:4px 6px; border-radius:8px }
+.ld-artifact-ctrl .mini{ height:22px; min-width:28px; padding:0 6px; border-radius:6px; border:1px solid var(--border); background:#121828; color:var(--fg); font-size:12px; line-height:1; cursor:pointer }
+.ld-artifact-ctrl .mini:active{ transform:translateY(1px) }
+.ld-artifact-ctrl .ratio{ min-width:44px; text-align:center; font-weight:700; font-size:12px }
+
+
+/* --- Free scoped from v1_0_47 --- */
+
+/* Free セクション専用（他へ影響しないよう #free_card にスコープ） */
+#free_card #free_table th, #free_card #free_table td{ font-size:11px }
+#free_card #free_table th:nth-child(1), #free_card #free_table td:nth-child(1){ width:44px; min-width:44px; text-align:center }
+#free_card #free_table th:nth-child(3), #free_card #free_table td:nth-child(3){ text-align:center }
+#free_card #free_table th:nth-child(4), #free_card #free_table td:nth-child(4){ text-align:center }
+#free_card #free_table th:nth-child(5), #free_card #free_table td:nth-child(5){ text-align:right }
+#free_card #free_table td.name{ font-size:11px; color: var(--muted) }
+#free_card #free_table .res-only{ display:flex; align-items:center; justify-content:center; gap:6px }
+#free_card .res-only .icon{ width:16px; height:16px }
+
+#free_card .free-controls{ display:flex; align-items:center; gap:8px; margin:6px 0 8px }
+#free_card .switch-mini{ position:relative; display:inline-block; width:32px; height:18px }
+#free_card .switch-mini input{ opacity:0; width:0; height:0 }
+#free_card .switch-mini .slider{ position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#3a4054; transition:.2s; border-radius:18px }
+#free_card .switch-mini .slider:before{ position:absolute; content:""; height:14px; width:14px; left:2px; top:2px; background:#fff; transition:.2s; border-radius:50% }
+#free_card .switch-mini input:checked + .slider{ background:#6aa5ff }
+#free_card .switch-mini input:checked + .slider:before{ transform:translateX(14px) }
+
+#free_card #free_table .tree-btn{
+  width:30px; height:30px; border:none; border-radius:6px;
+  background:#30364a; color:#fff; font-weight:700; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  touch-action: manipulation; user-select:none;
+  -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent;
+}
+#free_card #free_table .tree-btn[aria-expanded="true"]{ background:#4c6ef5 }
+#free_card #free_table tr.free-child td{ font-size:11px; background:rgba(255,255,255,.02) }
+#free_card #free_table tr.free-child td.name{ color:#b8c1d1 }
+#free_card #free_table tr.free-child td.name .indent{ display:inline-block; width:10px }
+#free_card #free_table td.center{ text-align:center }/* v1.0.48b Free table layout fine-tune */
+
+/* 「名前」列：ほんの少しだけ縮める（12.5em → 12em）＋中央寄せ */
+#free_card #free_table th:nth-child(2),
+#free_card #free_table td:nth-child(2){
+  width:10em;
+  min-width:10em;
+  text-align:center;
+}
+
+/* 「リソース」列（3列目）：見出し"リソース"が1行で入るように少し広げる */
+#free_card #free_table th:nth-child(3),
+#free_card #free_table td:nth-child(3){
+  /* これまでは固定幅なし＋flex内アイコン+ボタンだった。
+     わずかに幅を確保して2行落ちを防ぐ。 */
+  width:4em;
+  min-width:4em;
+  text-align:center;
+}
+
+/* 「期間」列（4列目）：そのまま中央寄せしつつ微調整なしでもOKだが、
+   すでに 3.5em 指定済みなら据え置き。 */
+#free_card #free_table th:nth-child(4),
+#free_card #free_table td:nth-child(4){
+  width:3.5em;
+  min-width:3.5em;
+  text-align:center;
+}
+
+/* 「日割」列（5列目）：半角5～6桁＋少数1桁まで見えるように少し広げる
+   （3.5em 相当から余裕を足すイメージ） */
+#free_card #free_table th:nth-child(5),
+#free_card #free_table td:nth-child(5){
+  width:4.5em;
+  min-width:4.5em;
+  text-align:right;
+}
+
+/* 招待状の展開ボタン（＋/－）：ショップ準拠 24px角 */
+#free_card #free_table .tree-btn{
+  width:24px;
+  height:24px;
+  line-height:24px;
+  font-size:14px;
+  border-radius:6px;
+}
+
+/* 子行の「└」インデントを揃える（"└"が縦にキレイに並ぶようにブロック幅固定） */
+#free_card #free_table tr.free-child td.name .indent{
+  display:inline-block;
+  width:1.4em;
+  text-align:right;
+  margin-right:.25em;
+}
+
+
+/* Free table FINAL (from user's decision) */
+#free_card #free_table th:nth-child(2),
+#free_card #free_table td:nth-child(2){ width:10em; min-width:10em; text-align:center; }
+#free_card #free_table th:nth-child(3),
+#free_card #free_table td:nth-child(3){ width:4em; min-width:4em; text-align:center; }
+#free_card #free_table th:nth-child(4),
+#free_card #free_table td:nth-child(4){ width:3.5em; min-width:3.5em; text-align:center; }
+#free_card #free_table th:nth-child(5),
+#free_card #free_table td:nth-child(5){ width:4.5em; min-width:4.5em; text-align:right; }
+#free_card #free_table .tree-btn{ width:24px; height:24px; line-height:24px; font-size:14px; border-radius:6px; }
+#free_card #free_table tr.free-child td.name .indent{ display:inline-block; width:1.4em; text-align:right; margin-right:.25em; }
+/* Free toggle label & chip row gap (align to match) */
+#free_card .free-controls .lab, #free_card #free_lab_fmt{ font-size:12px; line-height:1.2; color:var(--muted); }
+#free_card .ld-summary .ld-net{ flex-wrap:wrap; row-gap:6px; }
+#free_card .ld-summary .ld-net .ld-break{ flex-basis:100%; height:0; margin:0; padding:0; }
+#free_card .ld-summary .ld-net .ld-chip{ margin:0; }
+
+
+/* Collapsible heads */
+.fold-head{
+  margin: 10px 2px 6px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-strong, #dbe4ff);
+}
+.fold-head:focus{ outline: 2px solid rgba(100,150,255,.35); outline-offset: 2px; border-radius: 6px; }
+.card.is-collapsed{ display: none; }
