@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>専用財宝 発掘シミュレーター</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f5f5f8;
+      --card-bg: #ffffff;
+      --accent: #4a6cff;
+      --accent-soft: #dfe5ff;
+      --text-main: #222;
+      --text-sub: #666;
+      --border: #e0e0e5;
+      --danger: #d9534f;
+      --radius-lg: 16px;
+      --shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #eef0ff 0, #f5f5f8 60%);
+      color: var(--text-main);
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 1.6rem;
+      letter-spacing: 0.04em;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--text-sub);
+      font-size: 0.9rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      padding: 16px 18px 18px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      display: inline-block;
+      margin-bottom: 4px;
+    }
+
+    .input-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    input[type="number"] {
+      padding: 6px 8px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      min-width: 120px;
+    }
+
+    button {
+      padding: 7px 16px;
+      font-size: 0.95rem;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(74, 108, 255, 0.35);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      box-shadow: none;
+      cursor: default;
+    }
+
+    .note {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    .message {
+      margin-top: 6px;
+      font-size: 0.85rem;
+      color: var(--danger);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .stat {
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #fafbff;
+      border: 1px solid var(--border);
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    th,
+    td {
+      padding: 6px 4px;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    th {
+      background: #f4f6ff;
+      font-weight: 600;
+    }
+
+    .small {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 1.3rem;
+      }
+      .card {
+        padding: 14px 12px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>専用財宝 発掘シミュレーター</h1>
+      <p>
+        「すでに X 回目まで未当選」の X を入力すると、以後の期待値・中央値と
+        チュール／ダイヤの必要量を計算します。
+      </p>
+    </header>
+
+    <!-- 入力カード -->
+    <section class="card">
+      <h2>
+        入力
+        <span class="badge">専用財宝をまだ引けていない前提</span>
+      </h2>
+      <label for="input-x">X（すでに X 回目まで未当選）</label>
+      <div class="input-row">
+        <input
+          type="number"
+          id="input-x"
+          min="0"
+          max="208"
+          step="1"
+          value="0"
+        />
+        <button id="calc-btn">計算</button>
+      </div>
+      <p class="note">
+        0〜208 の整数を入力してください（209 回目は必ず当選するため、それ以上は固定になります）。
+      </p>
+      <p class="message" id="msg"></p>
+    </section>
+
+    <!-- 確率情報 -->
+    <section class="card">
+      <h2>確率情報</h2>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-label">当選する回数の期待値（通算）</div>
+          <div class="stat-value" id="stat-exp-total">-</div>
+          <div class="stat-sub">E[N | N &gt; X]</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">当選するまでに必要な期待回数（残り）</div>
+          <div class="stat-value" id="stat-exp-remain">-</div>
+          <div class="stat-sub">E[N | N &gt; X] − X</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">当選する回数の中央値（通算）</div>
+          <div class="stat-value" id="stat-med-total">-</div>
+          <div class="stat-sub">条件付き分布の中央値</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">当選するまでに必要な中央値（残り）</div>
+          <div class="stat-value" id="stat-med-remain">-</div>
+          <div class="stat-sub">中央値 − X</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">F<sub>X</sub>（X 回目までに当選している確率）</div>
+          <div class="stat-value" id="stat-fx">-</div>
+          <div class="stat-sub">P(N ≤ X)</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">
+            中央値しきい値 t = F<sub>X</sub> + 0.5・P(N &gt; X)
+          </div>
+          <div class="stat-value" id="stat-threshold">-</div>
+          <div class="stat-sub">P(N ≤ n) が t を初めて超える n が中央値</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- コスト情報 -->
+    <section class="card">
+      <h2>チュール／ダイヤ コスト</h2>
+      <p class="small">
+        1 回の発掘に <strong>チュール 3 本</strong> を消費。<br />
+        チュール 1 本は <strong>ダイヤ 300 個</strong>で購入するとします。
+      </p>
+
+      <h3>現在までのコスト</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>発掘回数</th>
+            <th>使用チュール本数</th>
+            <th>使用ダイヤ数</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>これまで</td>
+            <td id="spent-draws">-</td>
+            <td id="spent-tube">-</td>
+            <td id="spent-diamond">-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top: 14px;">これから必要なコスト（期待値／中央値）</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>指標</th>
+            <th>発掘回数（通算）</th>
+            <th>残り発掘回数</th>
+            <th>必要チュール本数（残り）</th>
+            <th>必要ダイヤ数（残り）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>期待値</td>
+            <td id="exp-total-draws">-</td>
+            <td id="exp-remain-draws">-</td>
+            <td id="exp-remain-tube">-</td>
+            <td id="exp-remain-diamond">-</td>
+          </tr>
+          <tr>
+            <td>中央値</td>
+            <td id="med-total-draws">-</td>
+            <td id="med-remain-draws">-</td>
+            <td id="med-remain-tube">-</td>
+            <td id="med-remain-diamond">-</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    // ================================
+    // 1. 分布テーブルの構築
+    // ================================
+    const MAX_DRAW = 209;
+    const BASE_P = 0.03;
+
+    const SPECIAL_PROBS = {
+      11: 0.10,
+      22: 0.15,
+      33: 0.20,
+      44: 0.25,
+      55: 0.30,
+      66: 0.35,
+      77: 0.40,
+      88: 0.45,
+      99: 0.50,
+      110: 0.55,
+      121: 0.60,
+      132: 0.65,
+      143: 0.70,
+      154: 0.75,
+      165: 0.80,
+      176: 0.85,
+      187: 0.90,
+      198: 0.95,
+      209: 1.0,
+    };
+
+    function buildDistribution() {
+      const dist = [];
+      let survival = 1.0;
+      let cdf = 0.0;
+
+      for (let n = 1; n <= MAX_DRAW; n++) {
+        const p = SPECIAL_PROBS[n] ?? BASE_P;
+        const pmf = survival * p;
+        cdf += pmf;
+        dist.push({ n, p, pmf, cdf });
+        survival *= 1 - p;
+      }
+      return dist;
+    }
+
+    const DISTRIBUTION = buildDistribution();
+
+    // ================================
+    // 2. 期待値・中央値の計算
+    // ================================
+
+    function computeStats(rawX) {
+      let X = Math.floor(Number(rawX));
+      if (isNaN(X)) {
+        return { error: "X が数値ではありません" };
+      }
+      if (X < 0) X = 0;
+
+      if (X >= MAX_DRAW) {
+        return {
+          error:
+            "X が 209 以上の場合、このモデルではすでに当選済みとみなされます。",
+          X,
+        };
+      }
+
+      let FX = 0;
+      if (X > 0) {
+        FX = DISTRIBUTION[X - 1].cdf;
+      }
+      const tailProb = 1 - FX;
+
+      if (tailProb <= 0) {
+        return {
+          error: "P(N > X) = 0 となり、条件付き期待値が定義できません。",
+          X,
+          FX,
+          tailProb,
+        };
+      }
+
+      let numerator = 0;
+      for (const row of DISTRIBUTION) {
+        if (row.n > X) {
+          numerator += row.n * row.pmf;
+        }
+      }
+      const expTotal = numerator / tailProb;
+      const expRemain = expTotal - X;
+
+      const threshold = FX + 0.5 * tailProb;
+      let medianN = MAX_DRAW;
+      for (const row of DISTRIBUTION) {
+        if (row.cdf >= threshold) {
+          medianN = row.n;
+          break;
+        }
+      }
+      const medRemain = medianN - X;
+
+      return {
+        X,
+        FX,
+        tailProb,
+        threshold,
+        expTotal,
+        expRemain,
+        medianTotal: medianN,
+        medianRemain: medRemain,
+      };
+    }
+
+    // ================================
+    // 3. コスト計算
+    // ================================
+    const TUBE_PER_DRAW = 3;
+    const DIAMOND_PER_TUBE = 300;
+
+    function costFromDraws(draws) {
+      const tubes = draws * TUBE_PER_DRAW;
+      const diamonds = tubes * DIAMOND_PER_TUBE;
+      return { tubes, diamonds };
+    }
+
+    // ================================
+    // 4. 表示ユーティリティ
+    // ================================
+    function formatNumber(x, digits = 2) {
+      if (x == null || !isFinite(x)) return "-";
+      return x.toFixed(digits);
+    }
+
+    function formatInt(x) {
+      if (x == null || !isFinite(x)) return "-";
+      return Math.round(x).toString();
+    }
+
+    // 確率をパーセント表記（小数第4位まで表示、5位を四捨五入）
+    function formatPercent(x) {
+      if (x == null || !isFinite(x)) return "-";
+      return (x * 100).toFixed(4) + "%";
+    }
+
+    // 整数＋カンマ区切り（ダイヤの現在コスト・中央値用）
+    function formatIntComma(x) {
+      if (x == null || !isFinite(x)) return "-";
+      return Math.round(x).toLocaleString("ja-JP");
+    }
+
+    // 小数付き＋カンマ区切り（ダイヤの期待値用）
+    function formatNumberComma(x, digits = 2) {
+      if (x == null || !isFinite(x)) return "-";
+      const fixed = Number(x.toFixed(digits));
+      return fixed.toLocaleString("ja-JP", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      });
+    }
+
+    function updateView(result) {
+      const msgEl = document.getElementById("msg");
+
+      if (result.error) {
+        msgEl.textContent = result.error;
+      } else {
+        msgEl.textContent = "";
+      }
+
+      // 確率系
+      document.getElementById("stat-exp-total").textContent = formatNumber(
+        result.expTotal,
+        2
+      );
+      document.getElementById("stat-exp-remain").textContent = formatNumber(
+        result.expRemain,
+        2
+      );
+      document.getElementById("stat-med-total").textContent = formatInt(
+        result.medianTotal
+      );
+      document.getElementById("stat-med-remain").textContent = formatInt(
+        result.medianRemain
+      );
+      document.getElementById("stat-fx").textContent = formatPercent(result.FX);
+      document.getElementById("stat-threshold").textContent =
+        formatPercent(result.threshold);
+
+      // 現在までのコスト
+      const spentDraws = result.X ?? 0;
+      const spentCost = costFromDraws(spentDraws);
+      document.getElementById("spent-draws").textContent = formatInt(
+        spentDraws
+      );
+      document.getElementById("spent-tube").textContent = formatInt(
+        spentCost.tubes
+      );
+      document.getElementById("spent-diamond").textContent = formatIntComma(
+        spentCost.diamonds
+      );
+
+      // これから必要なコスト（期待値）
+      const expRemain = Math.max(result.expRemain ?? 0, 0);
+      const expCost = costFromDraws(expRemain);
+      document.getElementById("exp-total-draws").textContent = formatNumber(
+        result.expTotal,
+        2
+      );
+      document.getElementById("exp-remain-draws").textContent = formatNumber(
+        expRemain,
+        2
+      );
+      document.getElementById("exp-remain-tube").textContent = formatNumber(
+        expCost.tubes,
+        2
+      );
+      document.getElementById("exp-remain-diamond").textContent =
+        formatNumberComma(expCost.diamonds, 2);
+
+      // これから必要なコスト（中央値）
+      const medRemain = Math.max(result.medianRemain ?? 0, 0);
+      const medCost = costFromDraws(medRemain);
+      document.getElementById("med-total-draws").textContent = formatInt(
+        result.medianTotal
+      );
+      document.getElementById("med-remain-draws").textContent = formatInt(
+        medRemain
+      );
+      document.getElementById("med-remain-tube").textContent = formatInt(
+        medCost.tubes
+      );
+      document.getElementById("med-remain-diamond").textContent =
+        formatIntComma(medCost.diamonds);
+    }
+
+    // ================================
+    // 5. イベント設定
+    // ================================
+    document.getElementById("calc-btn").addEventListener("click", () => {
+      const xVal = document.getElementById("input-x").value;
+      const result = computeStats(xVal);
+      updateView(result);
+    });
+
+    // 初期表示 (X=0)
+    updateView(computeStats(0));
+  </script>
+</body>
+</html>
