@@ -190,6 +190,32 @@
       color: var(--text-sub);
     }
 
+    /* 区間一覧の折り畳み */
+    details {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      list-style: none;
+    }
+
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details summary::before {
+      content: "▶ ";
+      font-size: 0.7rem;
+    }
+
+    details[open] summary::before {
+      content: "▼ ";
+    }
+
     @media (max-width: 600px) {
       header h1 { font-size: 1.3rem; }
       .card { padding: 14px 12px 16px; }
@@ -227,6 +253,33 @@
       <p class="note">
         0〜208 の整数を入力してください（209 回目は必ず当選するため、それ以上は固定になります）。
       </p>
+
+      <!-- 区間一覧（折り畳み） -->
+      <details>
+        <summary>自分の X がどの区間か確認する</summary>
+        <div style="margin-top:4px; line-height:1.4;">
+          <div>1〜10回区間　11回目：確率UP 10%</div>
+          <div>12〜21回区間　22回目：確率UP 15%</div>
+          <div>23〜32回区間　33回目：確率UP 20%</div>
+          <div>34〜43回区間　44回目：確率UP 25%</div>
+          <div>45〜54回区間　55回目：確率UP 30%</div>
+          <div>56〜65回区間　66回目：確率UP 35%</div>
+          <div>67〜76回区間　77回目：確率UP 40%</div>
+          <div>78〜87回区間　88回目：確率UP 45%</div>
+          <div>89〜98回区間　99回目：確率UP 50%</div>
+          <div>100〜109回区間　110回目：確率UP 55%</div>
+          <div>111〜120回区間　121回目：確率UP 60%</div>
+          <div>122〜131回区間　132回目：確率UP 65%</div>
+          <div>133〜142回区間　143回目：確率UP 70%</div>
+          <div>144〜153回区間　154回目：確率UP 75%</div>
+          <div>155〜164回区間　165回目：確率UP 80%</div>
+          <div>166〜175回区間　176回目：確率UP 85%</div>
+          <div>177〜186回区間　187回目：確率UP 90%</div>
+          <div>188〜197回区間　198回目：確率UP 95%</div>
+          <div>199〜208回区間　209回目：確率UP 100%</div>
+        </div>
+      </details>
+
       <p class="message" id="msg"></p>
     </section>
 
