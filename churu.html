@@ -18,9 +18,7 @@
       --shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.04);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -37,9 +35,7 @@
       padding: 24px 16px 40px;
     }
 
-    header {
-      margin-bottom: 24px;
-    }
+    header { margin-bottom: 24px; }
 
     header h1 {
       margin: 0 0 8px;
@@ -172,7 +168,6 @@
       padding: 6px 4px;
       border-bottom: 1px solid var(--border);
       text-align: right;
-      white-space: nowrap;
     }
 
     th:first-child,
@@ -183,6 +178,11 @@
     th {
       background: #f4f6ff;
       font-weight: 600;
+      white-space: normal; /* ヘッダだけ折り返し許可 */
+    }
+
+    td {
+      white-space: nowrap; /* データは1行に収める */
     }
 
     .small {
@@ -191,12 +191,8 @@
     }
 
     @media (max-width: 600px) {
-      header h1 {
-        font-size: 1.3rem;
-      }
-      .card {
-        padding: 14px 12px 16px;
-      }
+      header h1 { font-size: 1.3rem; }
+      .card { padding: 14px 12px 16px; }
     }
   </style>
 </head>
@@ -306,10 +302,10 @@
         <thead>
           <tr>
             <th>指標</th>
-            <th>発掘回数（通算）</th>
-            <th>残り発掘回数</th>
-            <th>必要チュール本数（残り）</th>
-            <th>必要ダイヤ数（残り）</th>
+            <th>発掘回数<br><span class="small">（通算）</span></th>
+            <th>残り<br><span class="small">発掘回数</span></th>
+            <th>必要チュール本数<br><span class="small">（残り）</span></th>
+            <th>必要ダイヤ数<br><span class="small">（残り）</span></th>
           </tr>
         </thead>
         <tbody>
@@ -381,7 +377,6 @@
     // ================================
     // 2. 期待値・中央値の計算
     // ================================
-
     function computeStats(rawX) {
       let X = Math.floor(Number(rawX));
       if (isNaN(X)) {
@@ -468,7 +463,7 @@
       return Math.round(x).toString();
     }
 
-    // 確率をパーセント表記（小数第4位まで表示、5位を四捨五入）
+    // 確率をパーセント表記（小数第4位まで）
     function formatPercent(x) {
       if (x == null || !isFinite(x)) return "-";
       return (x * 100).toFixed(4) + "%";
@@ -478,16 +473,6 @@
     function formatIntComma(x) {
       if (x == null || !isFinite(x)) return "-";
       return Math.round(x).toLocaleString("ja-JP");
-    }
-
-    // 小数付き＋カンマ区切り（ダイヤの期待値用）
-    function formatNumberComma(x, digits = 2) {
-      if (x == null || !isFinite(x)) return "-";
-      const fixed = Number(x.toFixed(digits));
-      return fixed.toLocaleString("ja-JP", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-      });
     }
 
     function updateView(result) {
@@ -518,7 +503,7 @@
       document.getElementById("stat-threshold").textContent =
         formatPercent(result.threshold);
 
-      // 現在までのコスト
+      // 現在までのコスト（整数）
       const spentDraws = result.X ?? 0;
       const spentCost = costFromDraws(spentDraws);
       document.getElementById("spent-draws").textContent = formatInt(
@@ -531,7 +516,7 @@
         spentCost.diamonds
       );
 
-      // これから必要なコスト（期待値）
+      // これから必要なコスト（期待値 → 四捨五入して整数表示）
       const expRemain = Math.max(result.expRemain ?? 0, 0);
       const expCost = costFromDraws(expRemain);
       document.getElementById("exp-total-draws").textContent = formatNumber(
@@ -542,14 +527,13 @@
         expRemain,
         2
       );
-      document.getElementById("exp-remain-tube").textContent = formatNumber(
-        expCost.tubes,
-        2
+      document.getElementById("exp-remain-tube").textContent = formatInt(
+        expCost.tubes
       );
       document.getElementById("exp-remain-diamond").textContent =
-        formatNumberComma(expCost.diamonds, 2);
+        formatIntComma(expCost.diamonds);
 
-      // これから必要なコスト（中央値）
+      // これから必要なコスト（中央値 → もともと整数）
       const medRemain = Math.max(result.medianRemain ?? 0, 0);
       const medCost = costFromDraws(medRemain);
       document.getElementById("med-total-draws").textContent = formatInt(
